@@ -1,0 +1,84 @@
+{
+  "project_info": {
+    "project_number": "792678778149",
+    "project_id": "audible-43582",
+    "storage_bucket": "audible-43582.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:792678778149:android:532cda01d579860523c6cc",
+        "android_client_info": {
+          "package_name": "com.spinel.audible"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "792678778149-efst2qal7sc725005ccvpjtbjdioo5i6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.spinel.audible",
+            "certificate_hash": "af62f92ed6bf18f7e663828bd9a06489e30cea8a"
+          }
+        },
+        {
+          "client_id": "792678778149-65pm7p29qdqu0se3160dq83mp5k2kbf9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3rvnO8oOSOH2QbKCUPFPIVS9rUl2HqR8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "792678778149-65pm7p29qdqu0se3160dq83mp5k2kbf9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:792678778149:android:19a44c0a0fd6027d23c6cc",
+        "android_client_info": {
+          "package_name": "com.spinel.dostoevsky"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "792678778149-tiqt3vp5glm4gfosu3jimjdbb0go8rtu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.spinel.dostoevsky",
+            "certificate_hash": "af62f92ed6bf18f7e663828bd9a06489e30cea8a"
+          }
+        },
+        {
+          "client_id": "792678778149-65pm7p29qdqu0se3160dq83mp5k2kbf9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3rvnO8oOSOH2QbKCUPFPIVS9rUl2HqR8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "792678778149-65pm7p29qdqu0se3160dq83mp5k2kbf9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

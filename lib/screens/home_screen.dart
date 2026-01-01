@@ -1,0 +1,1260 @@
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:math';
+import 'dart:async';
+
+import '../models/novel.dart';
+import 'reader_screen.dart';
+import 'favorites_screen.dart';
+import 'login_screen.dart';
+import '../main.dart';
+import '../utils/dostoyevsky_quotes.dart';
+import '../utils/novel_ratings.dart';
+import '../utils/share_helper.dart';
+import '../utils/ad_helper.dart';
+import '../utils/auth_service.dart';
+import '../widgets/comments_section.dart';
+import '../widgets/banner_ad_widget.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({
+    super.key, 
+    required this.languageCode,
+    required this.onDarkModeChanged,
+    required this.isDarkMode,
+  });
+
+  final String languageCode; // 'ar' | 'en'
+  final Function(bool) onDarkModeChanged;
+  final bool isDarkMode;
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late SharedPreferences _prefs;
+  Set<String> _favoriteIds = {};
+  bool _isLoading = true;
+  NativeAd? _nativeAd;
+  bool _isNativeAdLoaded = false;
+  InterstitialAd? _interstitialAd;
+  bool _isInterstitialAdReady = false;
+  RewardedInterstitialAd? _rewardedInterstitialAd;
+  bool _isRewardedInterstitialAdReady = false;
+  bool _isSignedIn = false;
+  String? _userName;
+  String? _userPhotoUrl;
+  bool _hasShownOpeningAd = false;
+
+  static const List<Novel> _arabicNovels = [
+    Novel(
+      title: 'الجريمة والعقاب',
+      assetFilePath: 'assets/books/ar/crime_and_punishment.epub',
+      coverAssetPath: 'assets/covers/crime_and_punishment.png',
+    ),
+    Novel(
+      title: 'الإخوة كارامازوف',
+      assetFilePath: 'assets/books/ar/the_brothers_karamazov.epub',
+      coverAssetPath: 'assets/covers/the_brothers_karamazov.png',
+    ),
+    Novel(
+      title: 'الأبله',
+      assetFilePath: 'assets/books/ar/the_idiot.epub',
+      coverAssetPath: 'assets/covers/the_idiot.png',
+    ),
+    Novel(
+      title: 'الشياطين',
+      assetFilePath: 'assets/books/ar/demons.epub',
+      coverAssetPath: 'assets/covers/demons.png',
+    ),
+    Novel(
+      title: 'المقامر',
+      assetFilePath: 'assets/books/ar/the_gambler.epub',
+      coverAssetPath: 'assets/covers/the_gambler.png',
+    ),
+    Novel(
+      title: 'مذكرات من قبو',
+      assetFilePath: 'assets/books/ar/Notes_from_the_Underground.epub',
+      coverAssetPath: 'assets/covers/notes.jpg',
+    ),
+    Novel(
+      title: 'حلم العم',
+      assetFilePath: 'assets/books/ar/Uncle_Dream.epub',
+      coverAssetPath: 'assets/covers/Uncle_Dream.png',
+    ),
+    Novel(
+      title: 'الزوج الأبدي',
+      assetFilePath: 'assets/books/ar/Permanent_Husband.epub',
+      coverAssetPath: 'assets/covers/husband.jpg',
+    ),
+    Novel(
+      title: 'الليالي البيضاء وقصص اخرى',
+      assetFilePath: 'assets/books/ar/White_Nights.epub',
+      coverAssetPath: 'assets/covers/White_Nights.png',
+    ),
+  ];
+
+  static const List<Novel> _englishNovels = [
+    Novel(
+      title: 'Crime and Punishment',
+      assetFilePath: 'assets/books/en/crime_and_punishment.epub',
+      coverAssetPath: 'assets/covers/crime_and_punishment.png',
+    ),
+    Novel(
+      title: 'The Brothers Karamazov',
+      assetFilePath: 'assets/books/en/brothers_karamazov.epub',
+      coverAssetPath: 'assets/covers/the_brothers_karamazov.png',
+    ),
+    Novel(
+      title: 'The Idiot',
+      assetFilePath: 'assets/books/en/the_idiot.epub',
+      coverAssetPath: 'assets/covers/the_idiot.png',
+    ),
+    Novel(
+      title: 'Demons',
+      assetFilePath: 'assets/books/en/demons.epub',
+      coverAssetPath: 'assets/covers/demons.png',
+    ),
+    Novel(
+      title: 'The Gambler',
+      assetFilePath: 'assets/books/en/the_gambler.epub',
+      coverAssetPath: 'assets/covers/the_gambler.png',
+    ),
+    Novel(
+      title: 'Notes from the Underground',
+      assetFilePath: 'assets/books/en/Notes_from_the_Underground.epub',
+      coverAssetPath: 'assets/covers/notes.jpg',
+    ),
+    Novel(
+      title: 'Poor Folk',
+      assetFilePath: 'assets/books/en/Poor_Folk.epub',
+      coverAssetPath: 'assets/covers/Poor_Folk.jpg',
+    ),
+    Novel(
+      title: 'The Grand Inquisitor',
+      assetFilePath: 'assets/books/en/The_Grand_Inquisitor.epub',
+      coverAssetPath: 'assets/covers/The_Grand_Inquisitor.png',
+    ),
+    Novel(
+      title: 'The house of the dead',
+      assetFilePath: 'assets/books/en/The_house_of_the_dead.epub',
+      coverAssetPath: 'assets/covers/The_house_of_the_dead.png',
+    ),
+    Novel(
+      title: 'Uncles Dream and The Permanent Husband',
+      assetFilePath: 'assets/books/en/Uncles_Dream.epub',
+      coverAssetPath: 'assets/covers/Uncle_Dream.png',
+    ),
+    Novel(
+      title: 'Short Stories',
+      assetFilePath: 'assets/books/en/Short_Stories.epub',
+      coverAssetPath: 'assets/covers/Short_Stories.png',
+    ),
+    Novel(
+      title: 'White Nights and Other Stories',
+      assetFilePath: 'assets/books/en/White_Nights.epub',
+      coverAssetPath: 'assets/covers/White_Nights.png',
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavorites();
+    _checkAuthStatus();
+    _loadInterstitialAd();
+    _loadRewardedInterstitialAd();
+    // Show ad when app opens (after ad is loaded, handled in _loadInterstitialAd)
+  }
+
+  void _loadRewardedInterstitialAd() {
+    AdHelper.createRewardedInterstitialAd(
+      onAdLoaded: (ad) {
+        setState(() {
+          _rewardedInterstitialAd = ad;
+          _isRewardedInterstitialAdReady = true;
+        });
+        _rewardedInterstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+          onAdDismissedFullScreenContent: (ad) {
+            ad.dispose();
+            setState(() {
+              _isRewardedInterstitialAdReady = false;
+            });
+            _loadRewardedInterstitialAd();
+          },
+          onAdFailedToShowFullScreenContent: (ad, error) {
+            ad.dispose();
+            setState(() {
+              _isRewardedInterstitialAdReady = false;
+            });
+            _loadRewardedInterstitialAd();
+          },
+        );
+      },
+      onAdFailedToLoad: (error) {
+        setState(() {
+          _isRewardedInterstitialAdReady = false;
+        });
+      },
+    );
+  }
+
+  void _showRewardedInterstitialAd() {
+    if (_rewardedInterstitialAd != null && _isRewardedInterstitialAdReady && mounted) {
+      _rewardedInterstitialAd!.show(
+        onUserEarnedReward: (ad, reward) {
+          if (mounted) {
+            final isAr = widget.languageCode == 'ar';
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(isAr ? 'شكراً لك! حصلت على المكافأة' : 'Thank you! You earned a reward'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        },
+      );
+      setState(() {
+        _isRewardedInterstitialAdReady = false;
+      });
+    }
+  }
+
+  Future<void> _checkAuthStatus() async {
+    final signedIn = await AuthService.isSignedIn();
+    if (signedIn) {
+      _userName = await AuthService.getUserName();
+      _userPhotoUrl = await AuthService.getUserPhotoUrl();
+    }
+    if (mounted) {
+      setState(() {
+        _isSignedIn = signedIn;
+      });
+    }
+  }
+
+  void _loadInterstitialAd() {
+    AdHelper.createInterstitialAd(
+      onAdLoaded: (ad) {
+        setState(() {
+          _interstitialAd = ad;
+          _isInterstitialAdReady = true;
+        });
+        _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+          onAdDismissedFullScreenContent: (ad) {
+            ad.dispose();
+            setState(() {
+              _isInterstitialAdReady = false;
+            });
+            _loadInterstitialAd();
+          },
+          onAdFailedToShowFullScreenContent: (ad, error) {
+            ad.dispose();
+            setState(() {
+              _isInterstitialAdReady = false;
+            });
+            _loadInterstitialAd();
+          },
+        );
+        
+        // Show opening ad if it hasn't been shown yet and ad is ready
+        if (!_hasShownOpeningAd && mounted) {
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted && !_hasShownOpeningAd && _isInterstitialAdReady) {
+              _showOpeningAd();
+            }
+          });
+        }
+      },
+      onAdFailedToLoad: (error) {
+        debugPrint('❌ Interstitial ad failed to load: $error');
+        setState(() {
+          _isInterstitialAdReady = false;
+        });
+        // Retry loading after a delay
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            _loadInterstitialAd();
+          }
+        });
+      },
+      onAdClosed: () {
+        setState(() {
+          _isInterstitialAdReady = false;
+        });
+        _loadInterstitialAd();
+      },
+    );
+  }
+
+  void _showOpeningAd() {
+    if (_interstitialAd != null && _isInterstitialAdReady && mounted) {
+      _hasShownOpeningAd = true;
+      _interstitialAd!.show();
+      setState(() {
+        _isInterstitialAdReady = false;
+      });
+    }
+  }
+
+  Future<void> _showInterstitialAdOnBookClick() async {
+    if (_interstitialAd != null && _isInterstitialAdReady && mounted) {
+      // Create a Completer to wait for ad dismissal
+      final completer = Completer<void>();
+      final currentAd = _interstitialAd;
+      
+      // Set up callback to complete when ad is dismissed
+      currentAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdDismissedFullScreenContent: (ad) {
+          ad.dispose();
+          setState(() {
+            _isInterstitialAdReady = false;
+          });
+          _loadInterstitialAd();
+          if (!completer.isCompleted) {
+            completer.complete();
+          }
+        },
+        onAdFailedToShowFullScreenContent: (ad, error) {
+          debugPrint('❌ Interstitial Ad failed to show: $error');
+          ad.dispose();
+          setState(() {
+            _isInterstitialAdReady = false;
+          });
+          _loadInterstitialAd();
+          if (!completer.isCompleted) {
+            completer.complete();
+          }
+        },
+      );
+      
+      currentAd.show();
+      setState(() {
+        _isInterstitialAdReady = false;
+      });
+      
+      // Wait for ad to be dismissed (max 30 seconds timeout)
+      await completer.future.timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          debugPrint('⚠️ Ad timeout - continuing navigation');
+        },
+      ).catchError((error) {
+        debugPrint('⚠️ Error waiting for ad: $error');
+      });
+    }
+    // Continue navigation whether ad was shown or not
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Ensure data is loaded when returning to this screen
+    if (_isLoading) {
+      _loadFavorites();
+    }
+  }
+
+  Future<void> _refreshData() async {
+    await _loadFavorites();
+  }
+
+  @override
+  void dispose() {
+    _nativeAd?.dispose();
+    _interstitialAd?.dispose();
+    _rewardedInterstitialAd?.dispose();
+    super.dispose();
+  }
+
+  void _loadNativeAd() {
+    _nativeAd = AdHelper.createNativeAd(
+      onAdLoaded: (ad) {
+        setState(() {
+          _nativeAd = ad;
+          _isNativeAdLoaded = true;
+        });
+      },
+      onAdFailedToLoad: (error) {
+        print('Native Ad failed to load: $error');
+        _isNativeAdLoaded = false;
+      },
+    );
+  }
+
+  Future<void> _loadFavorites() async {
+    _prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _favoriteIds = _prefs.getStringList('favorites')?.toSet() ?? {};
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _toggleFavorite(Novel novel) async {
+    final wasFavorite = _favoriteIds.contains(novel.assetFilePath);
+    setState(() {
+      if (wasFavorite) {
+        _favoriteIds.remove(novel.assetFilePath);
+      } else {
+        _favoriteIds.add(novel.assetFilePath);
+      }
+    });
+    await _prefs.setStringList('favorites', _favoriteIds.toList());
+    
+    // Show rewarded interstitial ad when adding to favorites (not when removing)
+    if (!wasFavorite) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          _showRewardedInterstitialAd();
+        }
+      });
+    }
+  }
+
+  bool _isFavorite(Novel novel) {
+    return _favoriteIds.contains(novel.assetFilePath);
+  }
+
+  List<Novel> get _favoriteNovels {
+    final allNovels = widget.languageCode == 'ar'
+        ? _arabicNovels
+        : _englishNovels;
+    return allNovels.where((n) => _isFavorite(n)).toList();
+  }
+
+  List<Novel> get _quickFavorites {
+    final favorites = _favoriteNovels;
+    return favorites.length > 3 ? favorites.take(3).toList() : favorites;
+  }
+
+  double _getProgress(String novelTitle) {
+    if (!_isLoading) {
+      return _prefs.getDouble('progress_$novelTitle') ?? 0.0;
+    }
+    return 0.0;
+  }
+
+  Future<void> _surpriseMe() async {
+    final novels = widget.languageCode == 'ar' ? _arabicNovels : _englishNovels;
+    if (novels.isEmpty) return;
+    final random = Random();
+    final randomNovel = novels[random.nextInt(novels.length)];
+    await _showInterstitialAdOnBookClick();
+    if (mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => ReaderScreen(novel: randomNovel)),
+      );
+    }
+  }
+
+  Future<void> _showLanguageDialog() async {
+    final isAr = widget.languageCode == 'ar';
+    final shouldChange = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(isAr ? 'تغيير اللغة؟' : 'Change Language?'),
+        content: Text(
+          isAr
+              ? 'هل تود العودة لشاشة اختيار اللغة؟'
+              : 'Return to language selection?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(isAr ? 'إلغاء' : 'Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(isAr ? 'تأكيد' : 'Confirm'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldChange == true && mounted) {
+      await _prefs.remove('language_code');
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const DostoyevskyReaderApp()),
+        (_) => false,
+      );
+    }
+  }
+
+  Widget _buildQuoteOfTheDay(BuildContext context, bool isAr, ThemeData theme) {
+    final quote = DostoyevskyQuotes.getQuoteOfTheDay(isAr);
+    final sepiaColor = const Color(0xFFF4ECD8);
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: sepiaColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.brown.shade300, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.format_quote_rounded,
+                color: Colors.brown.shade700,
+                size: 28,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isAr ? 'اقتباس اليوم' : 'Quote of the Day',
+                style: GoogleFonts.playfairDisplay(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.brown.shade800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SelectableText(
+            quote['quote']!,
+            style: GoogleFonts.playfairDisplay(
+              fontSize: 16,
+              height: 1.6,
+              color: Colors.brown.shade900,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: Icon(
+                  Icons.share_rounded,
+                  color: Colors.brown.shade700,
+                  size: 20,
+                ),
+                onPressed: () async {
+                  await ShareHelper.shareTextAsImage(
+                    context: context,
+                    text: quote['quote']!,
+                    source: quote['source']!,
+                    isArabic: isAr,
+                  );
+                },
+                tooltip: isAr ? 'مشاركة كصورة' : 'Share as Image',
+              ),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    '- ${quote['source']}',
+                    style: GoogleFonts.playfairDisplay(
+                      fontSize: 14,
+                      color: Colors.brown.shade700,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickFavorites(
+    BuildContext context,
+    bool isAr,
+    ThemeData theme,
+  ) {
+    final quickFavs = _quickFavorites;
+    if (quickFavs.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+          child: Text(
+            isAr ? 'مفضلاتك السريعة' : 'Your Quick Favorites',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 180,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: quickFavs.length,
+            itemBuilder: (context, index) {
+              final novel = quickFavs[index];
+              return Container(
+                width: 120,
+                margin: const EdgeInsets.only(right: 12),
+                  child: InkWell(
+                  onTap: () async {
+                    await _showInterstitialAdOnBookClick();
+                    if (mounted) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ReaderScreen(novel: novel),
+                        ),
+                      );
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.15),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.asset(
+                              novel.coverAssetPath,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
+                                    color: theme
+                                        .colorScheme
+                                        .surfaceContainerHighest,
+                                    child: Icon(
+                                      Icons.book,
+                                      size: 30,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                  ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        novel.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _shareApp() async {
+    final isAr = widget.languageCode == 'ar';
+    final appUrl =
+        'https://play.google.com/store/apps/details?id=com.spinel.dostoevsky';
+    await Share.share(
+      isAr
+          ? 'تحميل تطبيق روائع دوستويفسكي - مكتبة روايات فيودور دوستويفسكي الكاملة\n\n$appUrl'
+          : 'Download Dostoyevsky Novels App - Complete library of Fyodor Dostoyevsky\'s novels\n\n$appUrl',
+      subject: isAr ? 'روائع دوستويفسكي' : 'Dostoyevsky Novels',
+    );
+    
+    // Show rewarded interstitial ad after sharing
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        _showRewardedInterstitialAd();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final novels = widget.languageCode == 'ar' ? _arabicNovels : _englishNovels;
+    final theme = Theme.of(context);
+    final isAr = widget.languageCode == 'ar';
+
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      drawer: _buildDrawer(context, isAr, theme),
+      appBar: AppBar(
+        elevation: 0,
+        scrolledUnderElevation: 2,
+        centerTitle: true,
+        title: Text(
+          isAr ? 'مكتبة دوستويفسكي' : "Dostoyevsky Library",
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _refreshData,
+        child: novels.isEmpty
+            ? Center(
+                child: Text(
+                  isAr ? 'لا توجد روايات' : 'No novels available',
+                  style: theme.textTheme.titleMedium,
+                ),
+              )
+            : CustomScrollView(
+                slivers: [
+                  // Quote of the Day
+                  SliverToBoxAdapter(
+                    child: _buildQuoteOfTheDay(context, isAr, theme),
+                  ),
+                  // Native Ad (always show to prevent layout jumps)
+                  SliverToBoxAdapter(
+                    child: _buildNativeAd(context, theme),
+                  ),
+                  // Quick Favorites (if any)
+                  if (_quickFavorites.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: _buildQuickFavorites(context, isAr, theme),
+                    ),
+                  // Continue Reading Section
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                      child: Text(
+                        isAr ? "واصل القراءة" : "Continue Reading",
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Novels Grid
+                  SliverPadding(
+                    padding: const EdgeInsets.all(16),
+                    sliver: SliverGrid(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 20,
+                        crossAxisSpacing: 16,
+                        childAspectRatio: 0.65,
+                      ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        if (index >= novels.length) {
+                          return const SizedBox.shrink();
+                        }
+                        final novel = novels[index];
+                        return _NovelCard(
+                          novel: novel,
+                          isAr: isAr,
+                          isFavorite: _isFavorite(novel),
+                          rating: NovelRatings.getRating(novel.title),
+                          progress: _getProgress(novel.title),
+                          onTap: () async {
+                            await _showInterstitialAdOnBookClick();
+                            if (mounted) {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => ReaderScreen(novel: novel),
+                                ),
+                              ).then((_) {
+                                // Refresh data when returning from reader
+                                _refreshData();
+                              });
+                            }
+                          },
+                          onFavoriteTap: () => _toggleFavorite(novel),
+                        );
+                      }, childCount: novels.length),
+                    ),
+                  ),
+                  // Comments Section (after all novels)
+                  SliverToBoxAdapter(
+                    child: CommentsSection(
+                      key: ValueKey(_isSignedIn), // Rebuild when auth state changes
+                      isArabic: isAr,
+                      onCommentPosted: () {
+                        // Show rewarded interstitial ad after posting comment
+                        // This is a good place for maximum revenue
+                        _showRewardedInterstitialAd();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _surpriseMe,
+        icon: const Icon(Icons.auto_awesome_rounded),
+        label: Text(isAr ? 'مفاجئني' : 'Surprise Me'),
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Banner Ad
+            const BannerAdWidget(),
+            // Info text
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: theme.colorScheme.outlineVariant,
+                    width: 0.5,
+                  ),
+                ),
+              ),
+              child: Text(
+                isAr ? 'جميع الروايات محملة مسبقاً' : 'All novels are pre-loaded',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrawer(BuildContext context, bool isAr, ThemeData theme) {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          DrawerHeader(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (_isSignedIn && _userPhotoUrl != null && _userPhotoUrl!.isNotEmpty)
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundImage: NetworkImage(_userPhotoUrl!),
+                  )
+                else if (_isSignedIn)
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: theme.colorScheme.primary,
+                    child: Text(
+                      _userName?.isNotEmpty == true ? _userName![0].toUpperCase() : 'U',
+                      style: TextStyle(
+                        color: theme.colorScheme.onPrimary,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                Text(
+                  _isSignedIn ? (_userName ?? (isAr ? 'مستخدم' : 'User')) : (isAr ? 'روائع دوستويفسكي' : 'Dostoyevsky Library'),
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: theme.colorScheme.onPrimaryContainer,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Login/Logout
+          if (!_isSignedIn)
+            ListTile(
+              leading: Icon(
+                Icons.login_rounded,
+                color: theme.colorScheme.primary,
+              ),
+              title: Text(isAr ? 'تسجيل الدخول' : 'Sign In'),
+              onTap: () async {
+                Navigator.pop(context);
+                final success = await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => LoginScreen(
+                      onLoginSuccess: (success) {
+                        if (success) {
+                          _checkAuthStatus();
+                          Navigator.pop(context);
+                        }
+                      },
+                    ),
+                  ),
+                );
+                if (success == true) {
+                  _checkAuthStatus();
+                }
+              },
+            )
+          else
+            ListTile(
+              leading: Icon(
+                Icons.logout_rounded,
+                color: theme.colorScheme.error,
+              ),
+              title: Text(isAr ? 'تسجيل الخروج' : 'Sign Out'),
+              onTap: () async {
+                Navigator.pop(context);
+                await AuthService.signOut();
+                _checkAuthStatus();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(isAr ? 'تم تسجيل الخروج' : 'Signed out'),
+                    ),
+                  );
+                }
+              },
+            ),
+          const Divider(),
+          ListTile(
+            leading: Icon(
+              Icons.favorite_rounded,
+              color: theme.colorScheme.primary,
+            ),
+            title: Text(isAr ? 'المفضلة' : 'Favorites'),
+            subtitle: Text(
+              '${_favoriteNovels.length} ${isAr ? 'رواية' : 'novels'}',
+              style: theme.textTheme.bodySmall,
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => FavoritesScreen(
+                    favoriteNovels: _favoriteNovels,
+                    isAr: isAr,
+                    onRemoveFavorite: (novel) => _toggleFavorite(novel),
+                  ),
+                ),
+              );
+            },
+          ),
+          const Divider(),
+          // Dark Mode Toggle
+          SwitchListTile(
+            secondary: Icon(
+              widget.isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            title: Text(isAr ? 'الوضع الليلي' : 'Dark Mode'),
+            value: widget.isDarkMode,
+            onChanged: widget.onDarkModeChanged,
+          ),
+          const Divider(),
+          // Google Play Link
+          ListTile(
+            leading: Icon(
+              Icons.star_rounded,
+              color: Colors.amber,
+            ),
+            title: Text(isAr ? 'قيم التطبيق على Google Play' : 'Rate App on Google Play'),
+            onTap: () async {
+              Navigator.pop(context);
+              const url = 'https://play.google.com/store/apps/details?id=com.spinel.dostoevsky';
+              final uri = Uri.parse(url);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              } else {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(isAr ? 'لا يمكن فتح الرابط' : 'Could not open link'),
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+          ListTile(
+            leading: Icon(
+              Icons.share_rounded,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            title: Text(isAr ? 'مشاركة التطبيق' : 'Share App'),
+            onTap: () {
+              Navigator.pop(context);
+              _shareApp();
+            },
+          ),
+          ListTile(
+            leading: Icon(
+              Icons.translate_rounded,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            title: Text(isAr ? 'الإعدادات' : 'Settings'),
+            subtitle: Text(
+              isAr ? 'تغيير اللغة' : 'Change Language',
+              style: theme.textTheme.bodySmall,
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              _showLanguageDialog();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNativeAd(BuildContext context, ThemeData theme) {
+    // Always return a container to prevent layout jumps
+    // The container will be empty until ad loads
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: _isNativeAdLoaded && _nativeAd != null 
+          ? const EdgeInsets.all(12) 
+          : EdgeInsets.zero,
+      decoration: _isNativeAdLoaded && _nativeAd != null
+          ? BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant,
+                width: 1,
+              ),
+            )
+          : null,
+      child: _isNativeAdLoaded && _nativeAd != null
+          ? AdWidget(ad: _nativeAd!)
+          : const SizedBox.shrink(),
+    );
+  }
+
+  void _showAboutDialog(BuildContext context, bool isAr, ThemeData theme) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(isAr ? 'حول التطبيق' : 'About App'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              isAr ? 'روائع دوستويفسكي' : 'Dostoyevsky Library',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              isAr
+                  ? 'تطبيق شامل يحتوي على أهم أعمال الكاتب الروسي فيودور دوستويفسكي. يمكنك القراءة بدون إنترنت مع ميزات متقدمة للقراءة المريحة.'
+                  : 'A comprehensive app containing the most important works of Russian writer Fyodor Dostoyevsky. Read offline with advanced features for comfortable reading.',
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Version 1.0.0',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(isAr ? 'إغلاق' : 'Close'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NovelCard extends StatelessWidget {
+  const _NovelCard({
+    required this.novel,
+    required this.onTap,
+    required this.isAr,
+    required this.isFavorite,
+    required this.onFavoriteTap,
+    required this.rating,
+    required this.progress,
+  });
+
+  final Novel novel;
+  final VoidCallback onTap;
+  final bool isAr;
+  final bool isFavorite;
+  final VoidCallback onFavoriteTap;
+  final double rating;
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: theme.colorScheme.surface,
+        ),
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.12),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.asset(
+                        novel.coverAssetPath,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          child: Icon(
+                            Icons.book,
+                            size: 40,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        novel.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.star_rounded,
+                            size: 14,
+                            color: Colors.amber.shade700,
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            rating.toStringAsFixed(1),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: LinearProgressIndicator(
+                    value: progress.clamp(0.0, 1.0),
+                    minHeight: 5,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      progress > 0
+                          ? '${(progress * 100).toInt()}% ${isAr ? "اكتمل" : "Done"}'
+                          : isAr
+                          ? 'لم يبدأ'
+                          : 'Not Started',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 10,
+                      ),
+                    ),
+                    if (progress > 0)
+                      Icon(
+                        Icons.check_circle_outline,
+                        size: 12,
+                        color: theme.colorScheme.primary,
+                      ),
+                  ],
+                ),
+              ],
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                icon: Icon(
+                  isFavorite
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                ),
+                color: isFavorite ? Colors.red : theme.colorScheme.onSurface,
+                onPressed: onFavoriteTap,
+                style: IconButton.styleFrom(
+                  backgroundColor: theme.colorScheme.surface,
+                  padding: const EdgeInsets.all(4),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
