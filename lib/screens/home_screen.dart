@@ -182,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
       coverAssetPath: 'assets/covers/2.png',
     ),
     Novel(
-      title: 'Том 3. Село Степанчиково и его обитатели',
+      title: 'Том 3. Село Степанчиково и обитатели деревни',
       assetFilePath: 'assets/books/ru/3.epub',
       coverAssetPath: 'assets/covers/3.png',
     ),
@@ -222,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
       coverAssetPath: 'assets/covers/10.png',
     ),
     Novel(
-      title: 'Том 11. Публицистика 1860-х годов',
+      title: 'Том 11. Публицистика 1860 годов',
       assetFilePath: 'assets/books/ru/11.epub',
       coverAssetPath: 'assets/covers/11.png',
     ),
@@ -497,27 +497,36 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  void _loadNativeAd() {
-    _nativeAd = AdHelper.createNativeAd(
-      onAdLoaded: (ad) {
-        setState(() {
-          _nativeAd = ad;
-          _isNativeAdLoaded = true;
-        });
-      },
-      onAdFailedToLoad: (error) {
-        print('Native Ad failed to load: $error');
-        _isNativeAdLoaded = false;
-      },
-    );
-  }
-
   Future<void> _loadFavorites() async {
-    _prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _favoriteIds = _prefs.getStringList('favorites')?.toSet() ?? {};
-      _isLoading = false;
-    });
+    try {
+      _prefs = await SharedPreferences.getInstance();
+      if (mounted) {
+        setState(() {
+          _favoriteIds = _prefs.getStringList('favorites')?.toSet() ?? {};
+          _isLoading = false;
+        });
+        debugPrint('✅ Favorites loaded. Count: ${_favoriteIds.length}');
+        debugPrint('✅ Language: ${widget.languageCode}');
+        final novels = widget.languageCode == 'ar'
+            ? _arabicNovels
+            : widget.languageCode == 'ru'
+            ? _russianNovels
+            : _englishNovels;
+        debugPrint('✅ Novels count: ${novels.length}');
+        debugPrint('✅ Language: ${widget.languageCode}');
+        if (novels.isNotEmpty) {
+          debugPrint('✅ First novel: ${novels.first.title}');
+          debugPrint('✅ First novel path: ${novels.first.assetFilePath}');
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading favorites: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   Future<void> _toggleFavorite(Novel novel) async {
@@ -628,7 +637,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildQuoteOfTheDay(BuildContext context, bool isAr, ThemeData theme) {
-    final quote = DostoyevskyQuotes.getQuoteOfTheDay(isAr);
+    final quote = DostoyevskyQuotes.getQuoteOfTheDayByLanguage(
+      widget.languageCode,
+    );
     final sepiaColor = const Color(0xFFF4ECD8);
 
     return Container(
@@ -860,6 +871,15 @@ class _HomeScreenState extends State<HomeScreen> {
         : widget.languageCode == 'ru'
         ? _russianNovels
         : _englishNovels;
+
+    // Debug: Log novels count to help diagnose display issues
+    debugPrint(
+      '📚 HomeScreen build - Language: ${widget.languageCode}, Novels count: ${novels.length}',
+    );
+    if (novels.isEmpty) {
+      debugPrint('⚠️ WARNING: Novels list is empty!');
+    }
+
     final theme = Theme.of(context);
     final isAr = widget.languageCode == 'ar';
 
@@ -894,11 +914,10 @@ class _HomeScreenState extends State<HomeScreen> {
               )
             : CustomScrollView(
                 slivers: [
-                  // Quote of the Day (hidden for Russian language)
-                  if (widget.languageCode != 'ru')
-                    SliverToBoxAdapter(
-                      child: _buildQuoteOfTheDay(context, isAr, theme),
-                    ),
+                  // Quote of the Day
+                  SliverToBoxAdapter(
+                    child: _buildQuoteOfTheDay(context, isAr, theme),
+                  ),
                   // Native Ad (always show to prevent layout jumps)
                   SliverToBoxAdapter(child: _buildNativeAd(context, theme)),
                   // Quick Favorites (if any)
@@ -962,6 +981,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           rating: NovelRatings.getRating(novel.title),
                           progress: _getProgress(novel.title),
                           onTap: () async {
+                            debugPrint('📖 Opening novel: ${novel.title}');
+                            debugPrint('📖 Novel path: ${novel.assetFilePath}');
                             await _showInterstitialAdOnBookClick();
                             if (mounted) {
                               Navigator.of(context)
@@ -1028,7 +1049,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _getText(
                   'جميع الروايات محملة مسبقاً',
                   'All novels are pre-loaded',
-                  'Все романы предзагружены',
+                  'романы предзагружены',
                 ),
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -1200,19 +1221,18 @@ class _HomeScreenState extends State<HomeScreen> {
               if (await canLaunchUrl(uri)) {
                 await launchUrl(uri, mode: LaunchMode.externalApplication);
               } else {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        _getText(
-                          'لا يمكن فتح الرابط',
-                          'Could not open link',
-                          'Не удалось открыть ссылку',
-                        ),
+                if (!mounted) return;
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      _getText(
+                        'لا يمكن فتح الرابط',
+                        'Could not open link',
+                        'He удалось открыть ссылку',
                       ),
                     ),
-                  );
-                }
+                  ),
+                );
               }
             },
           ),
@@ -1249,19 +1269,18 @@ class _HomeScreenState extends State<HomeScreen> {
               if (await canLaunchUrl(uri)) {
                 await launchUrl(uri, mode: LaunchMode.externalApplication);
               } else {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        _getText(
-                          'لا يمكن فتح الرابط',
-                          'Could not open link',
-                          'Не удалось открыть ссылку',
-                        ),
+                if (!mounted) return;
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      _getText(
+                        'لا يمكن فتح الرابط',
+                        'Could not open link',
+                        'He удалось открыть ссылку',
                       ),
                     ),
-                  );
-                }
+                  ),
+                );
               }
             },
           ),
@@ -1306,52 +1325,6 @@ class _HomeScreenState extends State<HomeScreen> {
       child: _isNativeAdLoaded && _nativeAd != null
           ? AdWidget(ad: _nativeAd!)
           : const SizedBox.shrink(),
-    );
-  }
-
-  void _showAboutDialog(BuildContext context, bool isAr, ThemeData theme) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(_getText('حول التطبيق', 'About App', 'О приложении')),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _getText(
-                'روائع دوستويفسكي',
-                'Dostoyevsky Library',
-                'Библиотека Достоевского',
-              ),
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              isAr
-                  ? 'تطبيق شامل يحتوي على أهم أعمال الكاتب الروسي فيودور دوستويفسكي. يمكنك القراءة بدون إنترنت مع ميزات متقدمة للقراءة المريحة.'
-                  : 'A comprehensive app containing the most important works of Russian writer Fyodor Dostoyevsky. Read offline with advanced features for comfortable reading.',
-              style: theme.textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Version 1.0.2',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(_getText('إغلاق', 'Close', 'Закрыть')),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -1484,7 +1457,7 @@ class _NovelCard extends StatelessWidget {
                     Text(
                       progress > 0
                           ? '${(progress * 100).toInt()}% ${_getText("اكتمل", "Done", "Готово")}'
-                          : _getText('لم يبدأ', 'Not Started', 'Не начато'),
+                          : _getText('لم يبدأ', 'Not Started', 'He начато'),
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontSize: 10,

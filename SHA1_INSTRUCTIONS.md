@@ -87,3 +87,4 @@ keytool -list -v -keystore android/app/upload-keystore.jks -alias upload -storep
 4. أعد بناء التطبيق بالكامل (`flutter clean` ثم `flutter build`)
 
 
+

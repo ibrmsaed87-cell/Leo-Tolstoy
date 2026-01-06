@@ -76,15 +76,66 @@ class DostoyevskyQuotes {
     },
   ];
 
+  static const List<Map<String, String>> russianQuotes = [
+    {
+      'quote':
+          'Преступление и наказание следуют друг за другом и не могут быть разделены. Это две стороны одной медали.',
+      'source': 'Преступление и наказание',
+    },
+    {
+      'quote':
+          'Боль и страдание всегда являются ценой глубокого осознания. Тот, кто хочет много знать, должен много страдать.',
+      'source': 'Братья Карамазовы',
+    },
+    {
+      'quote':
+          'Красота спасёт мир. Ho истинная красота - это та, что исходит изнутри, из души.',
+      'source': 'Идиот',
+    },
+    {
+      'quote':
+          'Истинная свобода не в том, чтобы делать то, что хочешь, a в том, чтобы контролировать себя и свою волю.',
+      'source': 'Записки из подполья',
+    },
+    {
+      'quote':
+          'Любовь — это всё. Любовь — единственная сила, которая может спасти мир от зла.',
+      'source': 'Бесы',
+    },
+    {
+      'quote':
+          'Человек не просто разумное существо, но и существо, которому нужно страдание, чтобы понять жизнь.',
+      'source': 'Братья Карамазовы',
+    },
+    {
+      'quote':
+          'Надежда всегда существует, даже в самые тёмные моменты. Надежда — последнее, что умирает в сердце человека.',
+      'source': 'Преступление и наказание',
+    },
+  ];
+
   /// Get quote of the day based on current date
   static Map<String, String> getQuoteOfTheDay(bool isArabic) {
     final quotes = isArabic ? arabicQuotes : englishQuotes;
-    final dayOfYear = DateTime.now().difference(
-      DateTime(DateTime.now().year, 1, 1),
-    ).inDays;
+    final dayOfYear = DateTime.now()
+        .difference(DateTime(DateTime.now().year, 1, 1))
+        .inDays;
+    return quotes[dayOfYear % quotes.length];
+  }
+
+  /// Get quote of the day based on language code
+  static Map<String, String> getQuoteOfTheDayByLanguage(String languageCode) {
+    final List<Map<String, String>> quotes;
+    if (languageCode == 'ar') {
+      quotes = arabicQuotes;
+    } else if (languageCode == 'ru') {
+      quotes = russianQuotes;
+    } else {
+      quotes = englishQuotes;
+    }
+    final dayOfYear = DateTime.now()
+        .difference(DateTime(DateTime.now().year, 1, 1))
+        .inDays;
     return quotes[dayOfYear % quotes.length];
   }
 }
-
-
-

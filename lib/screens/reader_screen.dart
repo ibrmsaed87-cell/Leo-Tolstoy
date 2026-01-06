@@ -33,7 +33,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   int? _lastChapterIndex; // Track last chapter to detect chapter completion
-  bool _showRewardedAdOnSettings = false; // Option to show ad when opening settings
+  bool _showRewardedAdOnSettings =
+      false; // Option to show ad when opening settings
 
   final ScreenshotController _screenshot = ScreenshotController();
   late AudioPlayer _audioPlayer;
@@ -58,9 +59,12 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   Future<void> _loadSettings() async {
     _prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _showRewardedAdOnSettings = _prefs?.getBool('show_rewarded_ad_on_settings') ?? false;
-    });
+    if (mounted) {
+      setState(() {
+        _showRewardedAdOnSettings =
+            _prefs?.getBool('show_rewarded_ad_on_settings') ?? false;
+      });
+    }
   }
 
   @override
@@ -75,7 +79,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   Future<void> _initReader() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -91,26 +95,70 @@ class _ReaderScreenState extends State<ReaderScreen> {
       });
 
       // Load EPUB file
-      debugPrint("Loading EPUB: ${widget.novel.assetFilePath}");
-      final bytes = await rootBundle.load(widget.novel.assetFilePath);
-      debugPrint("EPUB file loaded, size: ${bytes.lengthInBytes} bytes");
-      
+      debugPrint("📚 Loading EPUB: ${widget.novel.assetFilePath}");
+      ByteData bytes;
+      try {
+        bytes = await rootBundle.load(widget.novel.assetFilePath);
+        debugPrint("✅ EPUB file loaded, size: ${bytes.lengthInBytes} bytes");
+      } catch (loadError) {
+        debugPrint("❌ Error loading EPUB file: $loadError");
+        debugPrint("❌ File path: ${widget.novel.assetFilePath}");
+        debugPrint("❌ Novel title: ${widget.novel.title}");
+        
+        // Provide more specific error message
+        String specificError;
+        if (loadError.toString().contains('Unable to load asset')) {
+          specificError = 'الملف غير موجود في التطبيق';
+        } else if (loadError.toString().contains('not found')) {
+          specificError = 'الملف غير موجود';
+        } else {
+          specificError = 'خطأ في تحميل الملف';
+        }
+        
+        throw Exception(
+          'Failed to load EPUB file: $specificError\n'
+          'Path: ${widget.novel.assetFilePath}\n'
+          'Error: $loadError',
+        );
+      }
+
       final initialCfi = _prefs?.getString('cfi_${widget.novel.title}');
       debugPrint("Initial CFI: ${initialCfi ?? 'null'}");
 
       // Parse EPUB document
       try {
-        final document = EpubDocument.openData(bytes.buffer.asUint8List());
-        debugPrint("EPUB document parsed successfully");
-        
+        // EpubDocument.openData returns a Future<EpubBook>
+        // EpubController expects Future<EpubBook>, so we pass the Future directly
+        final documentFuture = EpubDocument.openData(
+          bytes.buffer.asUint8List(),
+        );
+        debugPrint("EPUB document parsing started");
+
         _controller = EpubController(
-          document: document,
+          document: documentFuture,
           epubCfi: initialCfi,
         );
         debugPrint("EPUB controller created successfully");
       } catch (parseError) {
-        debugPrint("Error parsing EPUB document: $parseError");
-        throw Exception("Failed to parse EPUB file. The file may be corrupted. Error: $parseError");
+        debugPrint("❌ Error parsing EPUB document: $parseError");
+        debugPrint("❌ File size: ${bytes.lengthInBytes} bytes");
+        debugPrint("❌ Error type: ${parseError.runtimeType}");
+        
+        String errorMessage;
+        if (parseError.toString().contains('corrupt') ||
+            parseError.toString().contains('invalid')) {
+          errorMessage =
+              'الملف تالف أو غير صالح. يرجى التحقق من الملف.\n\n'
+              'File is corrupted or invalid. Please check the file.\n\n'
+              'Файл повреждён или недействителен. Пожалуйста, проверьте файл.';
+        } else {
+          errorMessage =
+              'حدث خطأ في قراءة الرواية. الملف قد يكون تالفاً.\n\n'
+              'Error reading book. The file may be corrupted.\n\n'
+              'Произошла ошибка при чтении романа. Файл может быть повреждён.';
+        }
+        
+        throw Exception(errorMessage);
       }
 
       _controller!.currentValueListenable.addListener(() async {
@@ -151,26 +199,84 @@ class _ReaderScreenState extends State<ReaderScreen> {
       // Wait for ad to load, then show it
       _waitAndShowInterstitialAd();
     } catch (e) {
-      debugPrint("Error loading book: $e");
-      debugPrint("Novel title: ${widget.novel.title}");
-      debugPrint("Asset path: ${widget.novel.assetFilePath}");
+      debugPrint("❌ Error loading book: $e");
+      debugPrint("❌ Novel title: ${widget.novel.title}");
+      debugPrint("❌ Asset path: ${widget.novel.assetFilePath}");
+      debugPrint("❌ Error type: ${e.runtimeType}");
+      
       if (mounted) {
         final locale = Localizations.localeOf(context);
         final isAr = locale.languageCode == 'ar';
         final isRu = locale.languageCode == 'ru';
-        
+
         String errorMsg;
-        if (isAr) {
-          errorMsg = 'حدث خطأ في تحميل الرواية. يرجى المحاولة مرة أخرى.\n\n'
-              'المسار: ${widget.novel.assetFilePath}';
-        } else if (isRu) {
-          errorMsg = 'Произошла ошибка при загрузке романа. Пожалуйста, попробуйте снова.\n\n'
-              'Путь: ${widget.novel.assetFilePath}';
-        } else {
-          errorMsg = 'Error loading book. Please try again.\n\n'
-              'Path: ${widget.novel.assetFilePath}';
-        }
+        final errorStr = e.toString();
         
+        // Check for specific error types
+        if (errorStr.contains('Unable to load asset') ||
+            errorStr.contains('not found') ||
+            errorStr.contains('الملف غير موجود')) {
+          if (isAr) {
+            errorMsg =
+                '❌ الملف غير موجود في التطبيق\n\n'
+                'الرواية: ${widget.novel.title}\n'
+                'المسار: ${widget.novel.assetFilePath}\n\n'
+                'يرجى التحقق من أن الملف موجود في مجلد assets/books/';
+          } else if (isRu) {
+            errorMsg =
+                '❌ Файл не найден в приложении\n\n'
+                'Роман: ${widget.novel.title}\n'
+                'Путь: ${widget.novel.assetFilePath}\n\n'
+                'Пожалуйста, убедитесь, что файл находится в папке assets/books/';
+          } else {
+            errorMsg =
+                '❌ File not found in app\n\n'
+                'Novel: ${widget.novel.title}\n'
+                'Path: ${widget.novel.assetFilePath}\n\n'
+                'Please ensure the file exists in assets/books/ folder';
+          }
+        } else if (errorStr.contains('corrupt') ||
+            errorStr.contains('تالف') ||
+            errorStr.contains('повреждён')) {
+          if (isAr) {
+            errorMsg =
+                '❌ الملف تالف أو غير صالح\n\n'
+                'الرواية: ${widget.novel.title}\n'
+                'يرجى التحقق من الملف أو إعادة تثبيت التطبيق';
+          } else if (isRu) {
+            errorMsg =
+                '❌ Файл повреждён или недействителен\n\n'
+                'Роман: ${widget.novel.title}\n'
+                'Пожалуйста, проверьте файл или переустановите приложение';
+          } else {
+            errorMsg =
+                '❌ File is corrupted or invalid\n\n'
+                'Novel: ${widget.novel.title}\n'
+                'Please check the file or reinstall the app';
+          }
+        } else {
+          // Generic error
+          if (isAr) {
+            errorMsg =
+                '❌ حدث خطأ في تحميل الرواية\n\n'
+                'الرواية: ${widget.novel.title}\n'
+                'المسار: ${widget.novel.assetFilePath}\n\n'
+                'يرجى المحاولة مرة أخرى أو إعادة تثبيت التطبيق';
+          } else if (isRu) {
+            errorMsg =
+                '❌ Произошла ошибка при загрузке романа\n\n'
+                'Роман: ${widget.novel.title}\n'
+                'Путь: ${widget.novel.assetFilePath}\n\n'
+                'Пожалуйста, попробуйте снова или переустановите приложение';
+          } else {
+            errorMsg =
+                '❌ Error loading book\n\n'
+                'Novel: ${widget.novel.title}\n'
+                'Path: ${widget.novel.assetFilePath}\n\n'
+                'Please try again or reinstall the app';
+          }
+        }
+
         setState(() {
           _isLoading = false;
           _errorMessage = errorMsg;
@@ -184,40 +290,50 @@ class _ReaderScreenState extends State<ReaderScreen> {
     AdHelper.createInterstitialAd(
       onAdLoaded: (ad) {
         debugPrint('✅ Interstitial Ad loaded successfully!');
-        setState(() {
-          _interstitialAd = ad;
-          _isInterstitialAdReady = true;
-        });
+        if (mounted) {
+          setState(() {
+            _interstitialAd = ad;
+            _isInterstitialAdReady = true;
+          });
+        }
         _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
           onAdDismissedFullScreenContent: (ad) {
             debugPrint('📢 Interstitial Ad dismissed');
             ad.dispose();
-            setState(() {
-              _isInterstitialAdReady = false;
-            });
+            if (mounted) {
+              setState(() {
+                _isInterstitialAdReady = false;
+              });
+            }
             _loadInterstitialAd(); // Load next ad
           },
           onAdFailedToShowFullScreenContent: (ad, error) {
             debugPrint('❌ Interstitial Ad failed to show: $error');
             ad.dispose();
-            setState(() {
-              _isInterstitialAdReady = false;
-            });
+            if (mounted) {
+              setState(() {
+                _isInterstitialAdReady = false;
+              });
+            }
             _loadInterstitialAd(); // Load next ad
           },
         );
       },
       onAdFailedToLoad: (error) {
         debugPrint('❌ Interstitial ad failed to load: $error');
-        setState(() {
-          _isInterstitialAdReady = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isInterstitialAdReady = false;
+          });
+        }
       },
       onAdClosed: () {
         debugPrint('📢 Interstitial Ad closed');
-        setState(() {
-          _isInterstitialAdReady = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isInterstitialAdReady = false;
+          });
+        }
         _loadInterstitialAd(); // Load next ad
       },
     );
@@ -250,9 +366,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
     if (_interstitialAd != null && _isInterstitialAdReady && mounted) {
       debugPrint('🎬 Showing Interstitial Ad...');
       _interstitialAd!.show();
-      setState(() {
-        _isInterstitialAdReady = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isInterstitialAdReady = false;
+        });
+      }
     } else {
       debugPrint(
         '⚠️ Cannot show Interstitial Ad: ad=${_interstitialAd != null}, ready=$_isInterstitialAdReady, mounted=$mounted',
@@ -297,71 +415,48 @@ class _ReaderScreenState extends State<ReaderScreen> {
     );
   }
 
-  void _showRewardedAd() {
-    if (_rewardedAd != null) {
-      _rewardedAd!.show(
-        onUserEarnedReward: (ad, reward) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  widget.novel.title.contains('الجريمة') ||
-                          widget.novel.title.contains('Crime')
-                      ? 'شكراً لك! استمتع بالقراءة بدون إعلانات'
-                      : 'Thank you! Enjoy ad-free reading',
-                ),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
-        },
-      );
-    } else {
-      _loadRewardedAd();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('جاري تحميل الإعلان... / Loading ad...'),
-          ),
-        );
-      }
-    }
-  }
-
   void _loadRewardedInterstitialAd() {
     debugPrint('📢 Loading Rewarded Interstitial Ad...');
     AdHelper.createRewardedInterstitialAd(
       onAdLoaded: (ad) {
         debugPrint('✅ Rewarded Interstitial Ad loaded successfully!');
-        setState(() {
-          _rewardedInterstitialAd = ad;
-          _isRewardedInterstitialAdReady = true;
-        });
+        if (mounted) {
+          setState(() {
+            _rewardedInterstitialAd = ad;
+            _isRewardedInterstitialAdReady = true;
+          });
+        }
         _rewardedInterstitialAd!.fullScreenContentCallback =
             FullScreenContentCallback(
               onAdDismissedFullScreenContent: (ad) {
                 debugPrint('📢 Rewarded Interstitial Ad dismissed');
                 ad.dispose();
-                setState(() {
-                  _isRewardedInterstitialAdReady = false;
-                });
+                if (mounted) {
+                  setState(() {
+                    _isRewardedInterstitialAdReady = false;
+                  });
+                }
                 _loadRewardedInterstitialAd(); // Load next ad
               },
               onAdFailedToShowFullScreenContent: (ad, error) {
                 debugPrint('❌ Rewarded Interstitial Ad failed to show: $error');
                 ad.dispose();
-                setState(() {
-                  _isRewardedInterstitialAdReady = false;
-                });
+                if (mounted) {
+                  setState(() {
+                    _isRewardedInterstitialAdReady = false;
+                  });
+                }
                 _loadRewardedInterstitialAd(); // Load next ad
               },
             );
       },
       onAdFailedToLoad: (error) {
         debugPrint('❌ Rewarded Interstitial Ad failed to load: $error');
-        setState(() {
-          _isRewardedInterstitialAdReady = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isRewardedInterstitialAdReady = false;
+          });
+        }
       },
     );
   }
@@ -389,9 +484,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
           }
         },
       );
-      setState(() {
-        _isRewardedInterstitialAdReady = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isRewardedInterstitialAdReady = false;
+        });
+      }
     } else {
       debugPrint(
         '⚠️ Cannot show Rewarded Interstitial Ad: ad=${_rewardedInterstitialAd != null}, ready=$_isRewardedInterstitialAdReady, mounted=$mounted',
@@ -427,9 +524,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
         final isAr = Localizations.localeOf(context).languageCode == 'ar';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isAr 
-              ? 'حدث خطأ في تشغيل الموسيقى' 
-              : 'Error playing music'),
+            content: Text(
+              isAr ? 'حدث خطأ في تشغيل الموسيقى' : 'Error playing music',
+            ),
           ),
         );
       }
@@ -470,9 +567,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 controller: scrollController,
                 itemCount: chapters.length,
                 itemBuilder: (context, i) {
+                  // Fix: Use chapters[i] instead of chapters[0] to show correct chapter title
+                  final chapter = i < chapters.length ? chapters[i] : null;
                   return ListTile(
                     title: Text(
-                      chapters[0].Title ?? "فصل ${i + 1}",
+                      chapter?.Title ?? "فصل ${i + 1}",
                       style: TextStyle(
                         color: _themeMode == ReaderThemeMode.dark
                             ? Colors.white
@@ -485,8 +584,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
                       await _controller!.scrollTo(
                         index: i,
                       ); // نستخدم متغير الحلقة i كفهرس للفصل
-                      Navigator.pop(context);
-                      
+
+                      // Check if widget is still mounted before using context
+                      if (!mounted) return;
+                      Navigator.pop(this.context);
+
                       // Show rewarded interstitial ad when completing a chapter
                       // (moving from one chapter to another)
                       if (previousChapter != null && previousChapter != i) {
@@ -525,6 +627,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
       debugPrint('Error reading clipboard: $e');
     }
 
+    // Check if widget is still mounted before using context
+    if (!mounted) return;
     // عرض dialog للكتابة أو اللصق
     final String? result = await showDialog<String>(
       context: context,
@@ -720,7 +824,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
             ? 'اقتباس من ${widget.novel.title}'
             : 'Quote from ${widget.novel.title}',
       );
-      
+
       // Show rewarded interstitial ad after sharing quote
       if (result.status == ShareResultStatus.success) {
         Future.delayed(const Duration(milliseconds: 500), () {
@@ -746,15 +850,13 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   void _showSettings() {
-    // Show rewarded interstitial ad when opening settings (if enabled)
-    if (_showRewardedAdOnSettings) {
-      Future.delayed(const Duration(milliseconds: 300), () {
-        if (mounted) {
-          _showRewardedInterstitialAd();
-        }
-      });
-    }
-    
+    // Show rewarded interstitial ad when opening settings
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        _showRewardedInterstitialAd();
+      }
+    });
+
     final isAr = Localizations.localeOf(context).languageCode == 'ar';
     showModalBottomSheet(
       context: context,
@@ -784,18 +886,20 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 ],
               ),
               SwitchListTile(
-                title: Text(
-                  isAr ? "الموسيقى" : "Music",
-                ),
+                title: Text(isAr ? "الموسيقى" : "Music"),
                 value: isPlaying,
                 onChanged: (v) => _toggleMusic(),
               ),
               SwitchListTile(
                 title: Text(
-                  isAr ? "إظهار إعلان المكافأة عند فتح الإعدادات" : "Show Rewarded Ad on Settings",
+                  isAr
+                      ? "إظهار إعلان المكافأة عند فتح الإعدادات"
+                      : "Show Rewarded Ad on Settings",
                 ),
                 subtitle: Text(
-                  isAr ? "عرض إعلان بمكافأة عند فتح قائمة الإعدادات" : "Show rewarded ad when opening settings",
+                  isAr
+                      ? "عرض إعلان بمكافأة عند فتح قائمة الإعدادات"
+                      : "Show rewarded ad when opening settings",
                   style: const TextStyle(fontSize: 12),
                 ),
                 value: _showRewardedAdOnSettings,
@@ -878,49 +982,49 @@ class _ReaderScreenState extends State<ReaderScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 64,
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _errorMessage!,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                        const SizedBox(height: 24),
-                        Builder(
-                          builder: (context) {
-                            final locale = Localizations.localeOf(context);
-                            String retryText;
-                            if (locale.languageCode == 'ar') {
-                              retryText = 'إعادة المحاولة';
-                            } else if (locale.languageCode == 'ru') {
-                              retryText = 'Повторить попытку';
-                            } else {
-                              retryText = 'Retry';
-                            }
-                            return ElevatedButton.icon(
-                              onPressed: () => _initReader(),
-                              icon: const Icon(Icons.refresh),
-                              label: Text(retryText),
-                            );
-                          },
-                        ),
-                      ],
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: Theme.of(context).colorScheme.error,
                     ),
-                  ),
-                )
-              : _controller == null
-                  ? const Center(child: CircularProgressIndicator())
-                  : Stack(
+                    const SizedBox(height: 16),
+                    Text(
+                      _errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 24),
+                    Builder(
+                      builder: (context) {
+                        final locale = Localizations.localeOf(context);
+                        String retryText;
+                        if (locale.languageCode == 'ar') {
+                          retryText = 'إعادة المحاولة';
+                        } else if (locale.languageCode == 'ru') {
+                          retryText = 'Повторить попытку';
+                        } else {
+                          retryText = 'Retry';
+                        }
+                        return ElevatedButton.icon(
+                          onPressed: () => _initReader(),
+                          icon: const Icon(Icons.refresh),
+                          label: Text(retryText),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : _controller == null
+          ? const Center(child: CircularProgressIndicator())
+          : Stack(
               children: [
                 // EpubView with text selection enabled
                 // Text selection should work now without GestureDetector interference
@@ -944,9 +1048,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   child: FloatingActionButton.small(
                     onPressed: () =>
                         setState(() => _chromeVisible = !_chromeVisible),
-                    child: Icon(
-                      _chromeVisible ? Icons.fullscreen : Icons.fullscreen_exit,
-                    ),
                     tooltip: _chromeVisible
                         ? (Localizations.localeOf(context).languageCode == 'ar'
                               ? 'إخفاء القوائم'
@@ -954,6 +1055,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
                         : (Localizations.localeOf(context).languageCode == 'ar'
                               ? 'إظهار القوائم'
                               : 'Show UI'),
+                    child: Icon(
+                      _chromeVisible ? Icons.fullscreen : Icons.fullscreen_exit,
+                    ),
                   ),
                 ),
               ],
