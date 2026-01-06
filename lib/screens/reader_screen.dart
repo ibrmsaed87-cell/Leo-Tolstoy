@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:epub_view/epub_view.dart';
 import 'package:flutter/material.dart';
@@ -51,10 +52,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
     super.initState();
     _audioPlayer = AudioPlayer();
     _loadSettings();
+    // Load book first, then load ads after book is successfully loaded
     _initReader();
-    _loadInterstitialAd();
-    _loadRewardedAd();
-    _loadRewardedInterstitialAd();
+    // Note: Ad loading will be triggered after book is loaded in _initReader
   }
 
   Future<void> _loadSettings() async {
@@ -85,211 +85,246 @@ class _ReaderScreenState extends State<ReaderScreen> {
       _errorMessage = null;
     });
 
+    // Step 1: Load settings (independent of book loading)
     try {
       _prefs = await SharedPreferences.getInstance();
-
       if (!mounted) return;
       setState(() {
         _fontSize = _prefs?.getDouble('f_size') ?? 20;
         _themeMode = ReaderThemeMode.values[_prefs?.getInt('t_mode') ?? 1];
       });
+    } catch (e) {
+      debugPrint('⚠️ Warning: Error loading settings: $e');
+      // Continue even if settings fail
+    }
 
-      // Load EPUB file
-      debugPrint("📚 Loading EPUB: ${widget.novel.assetFilePath}");
-      ByteData bytes;
-      try {
-        bytes = await rootBundle.load(widget.novel.assetFilePath);
-        debugPrint("✅ EPUB file loaded, size: ${bytes.lengthInBytes} bytes");
-      } catch (loadError) {
-        debugPrint("❌ Error loading EPUB file: $loadError");
-        debugPrint("❌ File path: ${widget.novel.assetFilePath}");
-        debugPrint("❌ Novel title: ${widget.novel.title}");
-        
-        // Provide more specific error message
-        String specificError;
-        if (loadError.toString().contains('Unable to load asset')) {
-          specificError = 'الملف غير موجود في التطبيق';
-        } else if (loadError.toString().contains('not found')) {
-          specificError = 'الملف غير موجود';
-        } else {
-          specificError = 'خطأ في تحميل الملف';
-        }
-        
-        throw Exception(
-          'Failed to load EPUB file: $specificError\n'
-          'Path: ${widget.novel.assetFilePath}\n'
-          'Error: $loadError',
-        );
-      }
+    // Step 2: Load EPUB file from assets (CRITICAL - must succeed)
+    debugPrint("📚 [BOOK LOADING] Starting EPUB file load...");
+    debugPrint("📚 [BOOK LOADING] Novel: ${widget.novel.title}");
+    debugPrint("📚 [BOOK LOADING] Path: ${widget.novel.assetFilePath}");
 
-      final initialCfi = _prefs?.getString('cfi_${widget.novel.title}');
-      debugPrint("Initial CFI: ${initialCfi ?? 'null'}");
+    ByteData bytes;
+    try {
+      bytes = await rootBundle.load(widget.novel.assetFilePath);
+      debugPrint("✅ [BOOK LOADING] EPUB file loaded successfully!");
+      debugPrint("✅ [BOOK LOADING] File size: ${bytes.lengthInBytes} bytes");
+    } catch (loadError) {
+      debugPrint("❌ Error loading EPUB file: $loadError");
+      debugPrint("❌ File path: ${widget.novel.assetFilePath}");
+      debugPrint("❌ Novel title: ${widget.novel.title}");
 
-      // Parse EPUB document
-      try {
-        // EpubDocument.openData returns a Future<EpubBook>
-        // EpubController expects Future<EpubBook>, so we pass the Future directly
-        final documentFuture = EpubDocument.openData(
-          bytes.buffer.asUint8List(),
-        );
-        debugPrint("EPUB document parsing started");
-
-        _controller = EpubController(
-          document: documentFuture,
-          epubCfi: initialCfi,
-        );
-        debugPrint("EPUB controller created successfully");
-      } catch (parseError) {
-        debugPrint("❌ Error parsing EPUB document: $parseError");
-        debugPrint("❌ File size: ${bytes.lengthInBytes} bytes");
-        debugPrint("❌ Error type: ${parseError.runtimeType}");
-        
-        String errorMessage;
-        if (parseError.toString().contains('corrupt') ||
-            parseError.toString().contains('invalid')) {
-          errorMessage =
-              'الملف تالف أو غير صالح. يرجى التحقق من الملف.\n\n'
-              'File is corrupted or invalid. Please check the file.\n\n'
-              'Файл повреждён или недействителен. Пожалуйста, проверьте файл.';
-        } else {
-          errorMessage =
-              'حدث خطأ في قراءة الرواية. الملف قد يكون تالفاً.\n\n'
-              'Error reading book. The file may be corrupted.\n\n'
-              'Произошла ошибка при чтении романа. Файл может быть повреждён.';
-        }
-        
-        throw Exception(errorMessage);
-      }
-
-      _controller!.currentValueListenable.addListener(() async {
-        final cfi = _controller!.generateEpubCfi();
-        if (cfi != null && _prefs != null) {
-          await _prefs!.setString('cfi_${widget.novel.title}', cfi);
-
-          // Calculate and save progress based on CFI position
-          // Since we can't easily parse CFI to get exact position, we use a simple approach:
-          // If CFI exists and has been updated, mark as "in progress" (set to a small value like 0.1)
-          // This indicates the user has started reading
-          try {
-            if (cfi.isNotEmpty) {
-              // If we have a saved CFI, the book has been opened/read
-              // We'll use a conservative estimate that increases slightly over time
-              // In a production app, you'd parse CFI to get exact position
-              final existingProgress =
-                  _prefs?.getDouble('progress_${widget.novel.title}') ?? 0.0;
-              // Only update if we haven't set a higher progress yet
-              // This prevents progress from being reset to a lower value
-              if (existingProgress < 0.1) {
-                await _prefs!.setDouble('progress_${widget.novel.title}', 0.1);
-              }
-            }
-          } catch (e) {
-            debugPrint('Error calculating progress: $e');
-          }
-        }
-      });
-
+      // This is a path/asset issue - file not found
       if (!mounted) return;
+      final locale = Localizations.localeOf(context);
+      final isAr = locale.languageCode == 'ar';
+      final isRu = locale.languageCode == 'ru';
+
+      String errorMsg;
+      if (isAr) {
+        errorMsg =
+            '❌ الملف غير موجود في التطبيق\n\n'
+            'الرواية: ${widget.novel.title}\n'
+            'المسار: ${widget.novel.assetFilePath}\n\n'
+            'يرجى التحقق من أن الملف موجود في مجلد assets/books/';
+      } else if (isRu) {
+        errorMsg =
+            '❌ Файл не найден в приложении\n\n'
+            'Роман: ${widget.novel.title}\n'
+            'Путь: ${widget.novel.assetFilePath}\n\n'
+            'Пожалуйста, убедитесь, что файл находится в папке assets/books/';
+      } else {
+        errorMsg =
+            '❌ File not found in app\n\n'
+            'Novel: ${widget.novel.title}\n'
+            'Path: ${widget.novel.assetFilePath}\n\n'
+            'Please ensure the file exists in assets/books/ folder';
+      }
+
       setState(() {
         _isLoading = false;
-        _errorMessage = null;
+        _errorMessage = errorMsg;
       });
+      return; // Stop here - cannot proceed without file
+    }
 
-      // Show interstitial ad after book is loaded (non-intrusive)
-      // Wait for ad to load, then show it
-      _waitAndShowInterstitialAd();
-    } catch (e) {
-      debugPrint("❌ Error loading book: $e");
-      debugPrint("❌ Novel title: ${widget.novel.title}");
-      debugPrint("❌ Asset path: ${widget.novel.assetFilePath}");
-      debugPrint("❌ Error type: ${e.runtimeType}");
-      
-      if (mounted) {
-        final locale = Localizations.localeOf(context);
-        final isAr = locale.languageCode == 'ar';
-        final isRu = locale.languageCode == 'ru';
+    // Step 3: Convert ByteData to Uint8List correctly
+    debugPrint("📚 [BOOK LOADING] Converting ByteData to Uint8List...");
+    Uint8List epubBytes;
+    try {
+      epubBytes = bytes.buffer.asUint8List();
+      debugPrint("✅ [BOOK LOADING] Converted to Uint8List successfully!");
+      debugPrint("✅ [BOOK LOADING] Uint8List size: ${epubBytes.length} bytes");
+    } catch (conversionError) {
+      debugPrint("❌ Error converting ByteData to Uint8List: $conversionError");
+      if (!mounted) return;
+      final locale = Localizations.localeOf(context);
+      final isAr = locale.languageCode == 'ar';
+      final isRu = locale.languageCode == 'ru';
 
-        String errorMsg;
-        final errorStr = e.toString();
-        
-        // Check for specific error types
-        if (errorStr.contains('Unable to load asset') ||
-            errorStr.contains('not found') ||
-            errorStr.contains('الملف غير موجود')) {
-          if (isAr) {
-            errorMsg =
-                '❌ الملف غير موجود في التطبيق\n\n'
-                'الرواية: ${widget.novel.title}\n'
-                'المسار: ${widget.novel.assetFilePath}\n\n'
-                'يرجى التحقق من أن الملف موجود في مجلد assets/books/';
-          } else if (isRu) {
-            errorMsg =
-                '❌ Файл не найден в приложении\n\n'
-                'Роман: ${widget.novel.title}\n'
-                'Путь: ${widget.novel.assetFilePath}\n\n'
-                'Пожалуйста, убедитесь, что файл находится в папке assets/books/';
-          } else {
-            errorMsg =
-                '❌ File not found in app\n\n'
-                'Novel: ${widget.novel.title}\n'
-                'Path: ${widget.novel.assetFilePath}\n\n'
-                'Please ensure the file exists in assets/books/ folder';
-          }
-        } else if (errorStr.contains('corrupt') ||
-            errorStr.contains('تالف') ||
-            errorStr.contains('повреждён')) {
-          if (isAr) {
-            errorMsg =
-                '❌ الملف تالف أو غير صالح\n\n'
-                'الرواية: ${widget.novel.title}\n'
-                'يرجى التحقق من الملف أو إعادة تثبيت التطبيق';
-          } else if (isRu) {
-            errorMsg =
-                '❌ Файл повреждён или недействителен\n\n'
-                'Роман: ${widget.novel.title}\n'
-                'Пожалуйста, проверьте файл или переустановите приложение';
-          } else {
-            errorMsg =
-                '❌ File is corrupted or invalid\n\n'
-                'Novel: ${widget.novel.title}\n'
-                'Please check the file or reinstall the app';
-          }
-        } else {
-          // Generic error
-          if (isAr) {
-            errorMsg =
-                '❌ حدث خطأ في تحميل الرواية\n\n'
-                'الرواية: ${widget.novel.title}\n'
-                'المسار: ${widget.novel.assetFilePath}\n\n'
-                'يرجى المحاولة مرة أخرى أو إعادة تثبيت التطبيق';
-          } else if (isRu) {
-            errorMsg =
-                '❌ Произошла ошибка при загрузке романа\n\n'
-                'Роман: ${widget.novel.title}\n'
-                'Путь: ${widget.novel.assetFilePath}\n\n'
-                'Пожалуйста, попробуйте снова или переустановите приложение';
-          } else {
-            errorMsg =
-                '❌ Error loading book\n\n'
-                'Novel: ${widget.novel.title}\n'
-                'Path: ${widget.novel.assetFilePath}\n\n'
-                'Please try again or reinstall the app';
-          }
-        }
-
-        setState(() {
-          _isLoading = false;
-          _errorMessage = errorMsg;
-        });
+      String errorMsg;
+      if (isAr) {
+        errorMsg = '❌ خطأ في معالجة الملف\n\nالرواية: ${widget.novel.title}';
+      } else if (isRu) {
+        errorMsg = '❌ Ошибка обработки файла\n\nРоман: ${widget.novel.title}';
+      } else {
+        errorMsg = '❌ Error processing file\n\nNovel: ${widget.novel.title}';
       }
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = errorMsg;
+      });
+      return;
+    }
+
+    // Step 4: Parse EPUB document and create controller
+    debugPrint("📚 [BOOK LOADING] Parsing EPUB document...");
+    final initialCfi = _prefs?.getString('cfi_${widget.novel.title}');
+    debugPrint("📚 [BOOK LOADING] Initial CFI: ${initialCfi ?? 'null'}");
+
+    try {
+      // EpubDocument.openData returns a Future<EpubBook>
+      // EpubController expects Future<EpubBook>, so we pass the Future directly
+      final documentFuture = EpubDocument.openData(epubBytes);
+      debugPrint("📚 [BOOK LOADING] EPUB document parsing started...");
+
+      _controller = EpubController(
+        document: documentFuture,
+        epubCfi: initialCfi,
+      );
+      debugPrint("✅ [BOOK LOADING] EPUB controller created successfully!");
+    } catch (parseError) {
+      debugPrint("❌ Error parsing EPUB document: $parseError");
+      debugPrint("❌ File size: ${epubBytes.length} bytes");
+      debugPrint("❌ Error type: ${parseError.runtimeType}");
+
+      // This is a parsing/corruption issue
+      if (!mounted) return;
+      final locale = Localizations.localeOf(context);
+      final isAr = locale.languageCode == 'ar';
+      final isRu = locale.languageCode == 'ru';
+
+      String errorMsg;
+      if (parseError.toString().contains('corrupt') ||
+          parseError.toString().contains('invalid')) {
+        if (isAr) {
+          errorMsg =
+              '❌ الملف تالف أو غير صالح\n\n'
+              'الرواية: ${widget.novel.title}\n'
+              'يرجى التحقق من الملف أو إعادة تثبيت التطبيق';
+        } else if (isRu) {
+          errorMsg =
+              '❌ Файл повреждён или недействителен\n\n'
+              'Роман: ${widget.novel.title}\n'
+              'Пожалуйста, проверьте файл или переустановите приложение';
+        } else {
+          errorMsg =
+              '❌ File is corrupted or invalid\n\n'
+              'Novel: ${widget.novel.title}\n'
+              'Please check the file or reinstall the app';
+        }
+      } else {
+        if (isAr) {
+          errorMsg =
+              '❌ حدث خطأ في قراءة الرواية\n\n'
+              'الرواية: ${widget.novel.title}\n'
+              'الملف قد يكون تالفاً';
+        } else if (isRu) {
+          errorMsg =
+              '❌ Произошла ошибка при чтении романа\n\n'
+              'Роман: ${widget.novel.title}\n'
+              'Файл может быть повреждён';
+        } else {
+          errorMsg =
+              '❌ Error reading book\n\n'
+              'Novel: ${widget.novel.title}\n'
+              'The file may be corrupted';
+        }
+      }
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = errorMsg;
+      });
+      return; // Stop here - cannot proceed without valid controller
+    }
+
+    // Step 5: Add CFI listener ONLY after controller is created and ready
+    // Wait a bit to ensure controller is fully initialized
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    if (!mounted || _controller == null) return;
+
+    try {
+      _controller!.currentValueListenable.addListener(_saveProgress);
+      debugPrint("✅ CFI progress listener added");
+    } catch (e) {
+      debugPrint('⚠️ Warning: Error adding CFI listener: $e');
+      // Continue even if listener fails - not critical
+    }
+
+    // Step 6: Mark book as loaded successfully
+    if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+      _errorMessage = null;
+    });
+    debugPrint("✅✅✅ [BOOK LOADING] Book loaded successfully! ✅✅✅");
+    debugPrint("✅ [BOOK LOADING] Novel: ${widget.novel.title}");
+    debugPrint("✅ [BOOK LOADING] Controller ready: ${_controller != null}");
+
+    // Step 7: Load ads AFTER book is successfully loaded
+    // This ensures ad failures don't affect book loading
+    debugPrint("📢 [AD LOADING] Starting ad loading (non-blocking)...");
+    _loadInterstitialAd();
+    _loadRewardedAd();
+    _loadRewardedInterstitialAd();
+
+    // Show ad after a delay (non-blocking)
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        debugPrint("📢 [AD LOADING] Attempting to show interstitial ad...");
+        _waitAndShowInterstitialAd();
+      }
+    });
+  }
+
+  // Separate method for saving progress (CFI listener callback)
+  void _saveProgress() async {
+    if (_controller == null || _prefs == null) return;
+
+    try {
+      final cfi = _controller!.generateEpubCfi();
+      if (cfi != null && cfi.isNotEmpty) {
+        await _prefs!.setString('cfi_${widget.novel.title}', cfi);
+
+        // Calculate and save progress based on CFI position
+        // Since we can't easily parse CFI to get exact position, we use a simple approach:
+        // If CFI exists and has been updated, mark as "in progress" (set to a small value like 0.1)
+        // This indicates the user has started reading
+        try {
+          final existingProgress =
+              _prefs?.getDouble('progress_${widget.novel.title}') ?? 0.0;
+          // Only update if we haven't set a higher progress yet
+          // This prevents progress from being reset to a lower value
+          if (existingProgress < 0.1) {
+            await _prefs!.setDouble('progress_${widget.novel.title}', 0.1);
+          }
+        } catch (e) {
+          debugPrint('⚠️ Warning: Error calculating progress: $e');
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Warning: Error saving progress: $e');
+      // Don't throw - this is not critical
     }
   }
 
   void _loadInterstitialAd() {
-    debugPrint('📢 Loading Interstitial Ad...');
+    debugPrint('📢 [AD LOADING] Loading Interstitial Ad...');
     AdHelper.createInterstitialAd(
       onAdLoaded: (ad) {
-        debugPrint('✅ Interstitial Ad loaded successfully!');
+        debugPrint('✅✅✅ [AD LOADING] Interstitial Ad loaded successfully! ✅✅✅');
         if (mounted) {
           setState(() {
             _interstitialAd = ad;
@@ -889,29 +924,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 title: Text(isAr ? "الموسيقى" : "Music"),
                 value: isPlaying,
                 onChanged: (v) => _toggleMusic(),
-              ),
-              SwitchListTile(
-                title: Text(
-                  isAr
-                      ? "إظهار إعلان المكافأة عند فتح الإعدادات"
-                      : "Show Rewarded Ad on Settings",
-                ),
-                subtitle: Text(
-                  isAr
-                      ? "عرض إعلان بمكافأة عند فتح قائمة الإعدادات"
-                      : "Show rewarded ad when opening settings",
-                  style: const TextStyle(fontSize: 12),
-                ),
-                value: _showRewardedAdOnSettings,
-                onChanged: (v) async {
-                  setState(() {
-                    _showRewardedAdOnSettings = v;
-                  });
-                  setST(() {
-                    _showRewardedAdOnSettings = v;
-                  });
-                  await _prefs?.setBool('show_rewarded_ad_on_settings', v);
-                },
               ),
             ],
           ),

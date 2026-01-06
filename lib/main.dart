@@ -12,22 +12,22 @@ import 'firebase_messaging_background_handler.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize Firebase
   await Firebase.initializeApp();
   debugPrint('✅ Firebase initialized');
-  
+
   // Register background message handler
   // This must be registered before runApp()
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   debugPrint('✅ FCM Background handler registered');
-  
+
   // Initialize AdMob
   await AdHelper.initialize();
-  
+
   // Initialize FCM Service
   await FCMService.initialize();
-  
+
   runApp(const DostoyevskyReaderApp());
 }
 
@@ -38,29 +38,89 @@ class DostoyevskyReaderApp extends StatefulWidget {
   State<DostoyevskyReaderApp> createState() => _DostoyevskyReaderAppState();
 }
 
-class _DostoyevskyReaderAppState extends State<DostoyevskyReaderApp> {
+class _DostoyevskyReaderAppState extends State<DostoyevskyReaderApp>
+    with WidgetsBindingObserver {
   static const prefsLangKey = 'language_code';
   static const prefsDarkModeKey = 'dark_mode';
   bool _isDarkMode = false;
+  bool _hasShownAppOpenAd = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadDarkMode();
     _checkInitialMessage();
+    // Load App Open Ad after initialization
+    _loadAppOpenAd();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    debugPrint('📱 App lifecycle state changed: $state');
+
+    // Show App Open Ad when app comes to foreground
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('📱 App resumed - checking App Open Ad...');
+      if (!_hasShownAppOpenAd && AdHelper.isAppOpenAdReady()) {
+        _hasShownAppOpenAd = true;
+        AdHelper.showAppOpenAd();
+        // Reset flag after a delay to allow showing ad again later
+        Future.delayed(const Duration(minutes: 5), () {
+          _hasShownAppOpenAd = false;
+        });
+      } else if (!AdHelper.isAppOpenAdReady()) {
+        // Load ad if not ready
+        _loadAppOpenAd();
+      }
+    }
+  }
+
+  void _loadAppOpenAd() {
+    debugPrint('📱 Loading App Open Ad...');
+    AdHelper.loadAppOpenAd(
+      onAdLoaded: () {
+        debugPrint('✅ App Open Ad loaded successfully');
+        // Show ad immediately after first load
+        if (!_hasShownAppOpenAd) {
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted && AdHelper.isAppOpenAdReady()) {
+              _hasShownAppOpenAd = true;
+              AdHelper.showAppOpenAd();
+            }
+          });
+        }
+      },
+      onAdFailedToLoad: (error) {
+        debugPrint('❌ App Open Ad failed to load: $error');
+        // Retry after delay
+        Future.delayed(const Duration(seconds: 5), () {
+          if (mounted) {
+            _loadAppOpenAd();
+          }
+        });
+      },
+    );
   }
 
   /// Check if app was opened from a notification (when app was terminated)
   Future<void> _checkInitialMessage() async {
     final FirebaseMessaging messaging = FirebaseMessaging.instance;
     final RemoteMessage? initialMessage = await messaging.getInitialMessage();
-    
+
     if (initialMessage != null && mounted) {
       debugPrint('📨 App opened from notification (terminated state):');
       debugPrint('   Title: ${initialMessage.notification?.title}');
       debugPrint('   Body: ${initialMessage.notification?.body}');
       debugPrint('   Data: ${initialMessage.data}');
-      
+
       // You can handle navigation here based on message.data
       // Example: Navigate to a specific screen
       // Navigator.of(context).pushNamed('/some-route');
@@ -113,7 +173,9 @@ class _DostoyevskyReaderAppState extends State<DostoyevskyReaderApp> {
       future: _loadLanguage(),
       builder: (context, snapshot) {
         final lang = snapshot.data; // null => first launch
-        final languageCode = (lang == 'ar' || lang == 'en' || lang == 'ru') ? lang : null;
+        final languageCode = (lang == 'ar' || lang == 'en' || lang == 'ru')
+            ? lang
+            : null;
         final isArabic = languageCode == 'ar';
 
         return MaterialApp(
