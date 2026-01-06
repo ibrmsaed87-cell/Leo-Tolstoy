@@ -371,21 +371,41 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       },
       onAdFailedToLoad: (error) {
-        debugPrint('❌ Interstitial ad failed to load: $error');
+        debugPrint('❌ [AD LOADING] Interstitial ad failed to load: $error');
+        debugPrint('❌ [AD LOADING] Error code: ${error.code}');
+        debugPrint('❌ [AD LOADING] Error message: ${error.message}');
+
+        // Check if it's a network error
+        final isNetworkError =
+            error.code == 0 ||
+            error.message.toLowerCase().contains('network') ||
+            error.message.toLowerCase().contains('timeout') ||
+            error.message.toLowerCase().contains('connection');
+
+        if (isNetworkError) {
+          debugPrint(
+            '⚠️ [AD LOADING] Network error detected - will retry with longer delay',
+          );
+        }
+
         setState(() {
           _isInterstitialAdReady = false;
         });
+
+        // Use longer delay for network errors
+        final delaySeconds = isNetworkError ? 10 : 5;
+
         // Retry loading after a delay (only if opening ad hasn't been shown yet)
         if (!_hasShownOpeningAd) {
-          Future.delayed(const Duration(seconds: 3), () {
+          Future.delayed(Duration(seconds: delaySeconds), () {
             if (mounted && !_hasShownOpeningAd) {
-              debugPrint('🔄 Retrying to load opening ad...');
+              debugPrint('🔄 [AD LOADING] Retrying to load opening ad...');
               _loadInterstitialAd();
             }
           });
         } else {
           // If opening ad was already shown, just retry for future use
-          Future.delayed(const Duration(seconds: 3), () {
+          Future.delayed(Duration(seconds: delaySeconds), () {
             if (mounted) {
               _loadInterstitialAd();
             }

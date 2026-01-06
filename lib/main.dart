@@ -83,11 +83,24 @@ class _DostoyevskyReaderAppState extends State<DostoyevskyReaderApp>
     }
   }
 
+  int _appOpenAdRetryCount = 0;
+  static const int _maxAppOpenAdRetries = 5;
+
   void _loadAppOpenAd() {
-    debugPrint('📱 Loading App Open Ad...');
+    if (_appOpenAdRetryCount >= _maxAppOpenAdRetries) {
+      debugPrint(
+        '⚠️ App Open Ad: Max retries reached ($_maxAppOpenAdRetries). Stopping retries.',
+      );
+      return;
+    }
+
+    debugPrint(
+      '📱 [AD LOADING] Loading App Open Ad... (Attempt ${_appOpenAdRetryCount + 1}/$_maxAppOpenAdRetries)',
+    );
     AdHelper.loadAppOpenAd(
       onAdLoaded: () {
-        debugPrint('✅ App Open Ad loaded successfully');
+        debugPrint('✅✅✅ [AD LOADING] App Open Ad loaded successfully! ✅✅✅');
+        _appOpenAdRetryCount = 0; // Reset retry count on success
         // Show ad immediately after first load
         if (!_hasShownAppOpenAd) {
           Future.delayed(const Duration(milliseconds: 500), () {
@@ -99,11 +112,46 @@ class _DostoyevskyReaderAppState extends State<DostoyevskyReaderApp>
         }
       },
       onAdFailedToLoad: (error) {
-        debugPrint('❌ App Open Ad failed to load: $error');
-        // Retry after delay
-        Future.delayed(const Duration(seconds: 5), () {
-          if (mounted) {
+        _appOpenAdRetryCount++;
+        debugPrint(
+          '❌ [AD LOADING] App Open Ad failed to load (Attempt $_appOpenAdRetryCount/$_maxAppOpenAdRetries)',
+        );
+        debugPrint('❌ [AD LOADING] Error: ${error.message}');
+        debugPrint('❌ [AD LOADING] Error code: ${error.code}');
+
+        // Check if it's a network error
+        final isNetworkError =
+            error.code == 0 ||
+            error.message.toLowerCase().contains('network') ||
+            error.message.toLowerCase().contains('timeout') ||
+            error.message.toLowerCase().contains('connection') ||
+            error.message.toLowerCase().contains('internet');
+
+        if (isNetworkError) {
+          debugPrint(
+            '⚠️ [AD LOADING] Network error detected - using longer retry delay',
+          );
+        }
+
+        // Exponential backoff: 5s, 10s, 15s, 20s, 30s
+        final delaySeconds = _appOpenAdRetryCount <= 1
+            ? 5
+            : _appOpenAdRetryCount <= 2
+            ? 10
+            : _appOpenAdRetryCount <= 3
+            ? 15
+            : _appOpenAdRetryCount <= 4
+            ? 20
+            : 30;
+
+        debugPrint('🔄 [AD LOADING] Retrying in $delaySeconds seconds...');
+        Future.delayed(Duration(seconds: delaySeconds), () {
+          if (mounted && _appOpenAdRetryCount < _maxAppOpenAdRetries) {
             _loadAppOpenAd();
+          } else if (_appOpenAdRetryCount >= _maxAppOpenAdRetries) {
+            debugPrint(
+              '⚠️ [AD LOADING] Max retries reached. App Open Ad will not load.',
+            );
           }
         });
       },

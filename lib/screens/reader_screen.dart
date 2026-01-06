@@ -101,17 +101,70 @@ class _ReaderScreenState extends State<ReaderScreen> {
     // Step 2: Load EPUB file from assets (CRITICAL - must succeed)
     debugPrint("📚 [BOOK LOADING] Starting EPUB file load...");
     debugPrint("📚 [BOOK LOADING] Novel: ${widget.novel.title}");
-    debugPrint("📚 [BOOK LOADING] Path: ${widget.novel.assetFilePath}");
+
+    // Validate path before attempting to load
+    final assetPath = widget.novel.assetFilePath;
+    debugPrint("📚 [BOOK LOADING] Asset path: '$assetPath'");
+
+    if (assetPath.isEmpty) {
+      debugPrint("❌ [BOOK LOADING] ERROR: Asset path is empty!");
+      debugPrint("❌ [BOOK LOADING] Novel title: ${widget.novel.title}");
+      if (!mounted) return;
+      final locale = Localizations.localeOf(context);
+      final isAr = locale.languageCode == 'ar';
+      final isRu = locale.languageCode == 'ru';
+
+      String errorMsg;
+      if (isAr) {
+        errorMsg = '❌ خطأ: مسار الملف فارغ\n\nالرواية: ${widget.novel.title}';
+      } else if (isRu) {
+        errorMsg =
+            '❌ Ошибка: путь к файлу пуст\n\nРоман: ${widget.novel.title}';
+      } else {
+        errorMsg =
+            '❌ Error: File path is empty\n\nNovel: ${widget.novel.title}';
+      }
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = errorMsg;
+      });
+      return;
+    }
+
+    debugPrint("📚 [BOOK LOADING] Asset path validated: '$assetPath'");
+    debugPrint("📚 [BOOK LOADING] Attempting to load from rootBundle...");
 
     ByteData bytes;
     try {
-      bytes = await rootBundle.load(widget.novel.assetFilePath);
+      bytes = await rootBundle.load(assetPath);
       debugPrint("✅ [BOOK LOADING] EPUB file loaded successfully!");
       debugPrint("✅ [BOOK LOADING] File size: ${bytes.lengthInBytes} bytes");
     } catch (loadError) {
-      debugPrint("❌ Error loading EPUB file: $loadError");
-      debugPrint("❌ File path: ${widget.novel.assetFilePath}");
-      debugPrint("❌ Novel title: ${widget.novel.title}");
+      debugPrint("❌ [BOOK LOADING] ERROR loading EPUB file!");
+      debugPrint("❌ [BOOK LOADING] Error type: ${loadError.runtimeType}");
+      debugPrint("❌ [BOOK LOADING] Error message: $loadError");
+      debugPrint("❌ [BOOK LOADING] Attempted path: '$assetPath'");
+      debugPrint("❌ [BOOK LOADING] Novel title: ${widget.novel.title}");
+
+      // Check for specific error types
+      final errorString = loadError.toString().toLowerCase();
+      if (errorString.contains('unable to load asset') ||
+          errorString.contains('not found') ||
+          errorString.contains('asset not found')) {
+        debugPrint(
+          "❌ [BOOK LOADING] DIAGNOSIS: Asset file not found in bundle",
+        );
+        debugPrint("❌ [BOOK LOADING] Please check:");
+        debugPrint("   1. File exists in assets/books/ folder");
+        debugPrint(
+          "   2. pubspec.yaml includes 'assets/books/' in assets section",
+        );
+        debugPrint("   3. Run 'flutter pub get' and rebuild the app");
+        debugPrint("   4. Path matches exactly (case-sensitive): '$assetPath'");
+      } else {
+        debugPrint("❌ [BOOK LOADING] DIAGNOSIS: Unknown error loading asset");
+      }
 
       // This is a path/asset issue - file not found
       if (!mounted) return;
@@ -355,12 +408,37 @@ class _ReaderScreenState extends State<ReaderScreen> {
         );
       },
       onAdFailedToLoad: (error) {
-        debugPrint('❌ Interstitial ad failed to load: $error');
+        debugPrint('❌ [AD LOADING] Interstitial ad failed to load: $error');
+        debugPrint('❌ [AD LOADING] Error code: ${error.code}');
+        debugPrint('❌ [AD LOADING] Error message: ${error.message}');
+
+        // Check if it's a network error
+        final isNetworkError =
+            error.code == 0 ||
+            error.message.toLowerCase().contains('network') ||
+            error.message.toLowerCase().contains('timeout') ||
+            error.message.toLowerCase().contains('connection');
+
+        if (isNetworkError) {
+          debugPrint(
+            '⚠️ [AD LOADING] Network error detected - will retry with longer delay',
+          );
+        }
+
         if (mounted) {
           setState(() {
             _isInterstitialAdReady = false;
           });
         }
+
+        // Retry with longer delay for network errors
+        final delaySeconds = isNetworkError ? 10 : 5;
+        Future.delayed(Duration(seconds: delaySeconds), () {
+          if (mounted) {
+            debugPrint('🔄 [AD LOADING] Retrying to load Interstitial ad...');
+            _loadInterstitialAd();
+          }
+        });
       },
       onAdClosed: () {
         debugPrint('📢 Interstitial Ad closed');

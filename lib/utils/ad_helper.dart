@@ -77,6 +77,20 @@ class AdHelper {
         },
         onAdFailedToLoad: (error) {
           debugPrint('❌ App Open Ad failed to load: $error');
+          debugPrint('❌ Error code: ${error.code}');
+          debugPrint('❌ Error domain: ${error.domain}');
+          debugPrint('❌ Error message: ${error.message}');
+          
+          // Check if it's a network error
+          final isNetworkError = error.code == 0 || 
+                                 error.message.toLowerCase().contains('network') ||
+                                 error.message.toLowerCase().contains('timeout') ||
+                                 error.message.toLowerCase().contains('connection');
+          
+          if (isNetworkError) {
+            debugPrint('⚠️ Network error detected - will retry with longer delay');
+          }
+          
           _isAppOpenAdReady = false;
           onAdFailedToLoad?.call(error);
         },
@@ -113,6 +127,9 @@ class AdHelper {
       listener: NativeAdListener(
         onAdLoaded: (ad) => onAdLoaded(ad as NativeAd),
         onAdFailedToLoad: (ad, error) {
+          debugPrint('❌ [AD LOADING] Native Ad failed to load: $error');
+          debugPrint('❌ [AD LOADING] Error code: ${error.code}');
+          debugPrint('❌ [AD LOADING] Error message: ${error.message}');
           ad.dispose();
           onAdFailedToLoad(error);
         },
@@ -136,6 +153,9 @@ class AdHelper {
           onAdLoaded(ad);
         },
         onAdFailedToLoad: (error) {
+          debugPrint('❌ [AD LOADING] Rewarded Ad failed to load: $error');
+          debugPrint('❌ [AD LOADING] Error code: ${error.code}');
+          debugPrint('❌ [AD LOADING] Error message: ${error.message}');
           onAdFailedToLoad(error);
         },
       ),
@@ -159,6 +179,9 @@ class AdHelper {
           onAdLoaded(ad);
         },
         onAdFailedToLoad: (error) {
+          debugPrint('❌ [AD LOADING] Interstitial Ad failed to load: $error');
+          debugPrint('❌ [AD LOADING] Error code: ${error.code}');
+          debugPrint('❌ [AD LOADING] Error message: ${error.message}');
           onAdFailedToLoad(error);
         },
       ),
@@ -179,6 +202,9 @@ class AdHelper {
           onAdLoaded(ad);
         },
         onAdFailedToLoad: (error) {
+          debugPrint('❌ [AD LOADING] Rewarded Interstitial Ad failed to load: $error');
+          debugPrint('❌ [AD LOADING] Error code: ${error.code}');
+          debugPrint('❌ [AD LOADING] Error message: ${error.message}');
           onAdFailedToLoad(error);
         },
       ),
