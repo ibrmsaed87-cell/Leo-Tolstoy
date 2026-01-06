@@ -113,7 +113,7 @@ class _DostoyevskyReaderAppState extends State<DostoyevskyReaderApp> {
       future: _loadLanguage(),
       builder: (context, snapshot) {
         final lang = snapshot.data; // null => first launch
-        final languageCode = (lang == 'ar' || lang == 'en') ? lang : null;
+        final languageCode = (lang == 'ar' || lang == 'en' || lang == 'ru') ? lang : null;
         final isArabic = languageCode == 'ar';
 
         return MaterialApp(
@@ -143,7 +143,7 @@ class _DostoyevskyReaderAppState extends State<DostoyevskyReaderApp> {
           ),
           themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
           locale: languageCode == null ? null : Locale(languageCode),
-          supportedLocales: const [Locale('ar'), Locale('en')],
+          supportedLocales: const [Locale('ar'), Locale('en'), Locale('ru')],
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,

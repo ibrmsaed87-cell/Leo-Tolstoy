@@ -14,14 +14,6 @@
       },
       "oauth_client": [
         {
-          "client_id": "792678778149-efst2qal7sc725005ccvpjtbjdioo5i6.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.spinel.audible",
-            "certificate_hash": "af62f92ed6bf18f7e663828bd9a06489e30cea8a"
-          }
-        },
-        {
           "client_id": "792678778149-65pm7p29qdqu0se3160dq83mp5k2kbf9.apps.googleusercontent.com",
           "client_type": 3
         }

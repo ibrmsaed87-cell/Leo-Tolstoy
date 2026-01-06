@@ -6,13 +6,13 @@ class LanguageSelectionScreen extends StatelessWidget {
     required this.onSelected,
   });
 
-  final ValueChanged<String> onSelected; // 'ar' | 'en'
+  final ValueChanged<String> onSelected; // 'ar' | 'en' | 'ru'
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('اختر اللغة / Choose Language'),
+        title: const Text('اختر اللغة / Choose Language / Выберите язык'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -30,6 +30,12 @@ class LanguageSelectionScreen extends StatelessWidget {
               title: 'English',
               subtitle: 'Left-to-right UI',
               onTap: () => onSelected('en'),
+            ),
+            const SizedBox(height: 12),
+            _LangButton(
+              title: 'Русский',
+              subtitle: 'Интерфейс слева направо',
+              onTap: () => onSelected('ru'),
             ),
             const Spacer(),
             Text(

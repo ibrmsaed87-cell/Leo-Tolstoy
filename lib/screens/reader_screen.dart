@@ -90,13 +90,28 @@ class _ReaderScreenState extends State<ReaderScreen> {
         _themeMode = ReaderThemeMode.values[_prefs?.getInt('t_mode') ?? 1];
       });
 
+      // Load EPUB file
+      debugPrint("Loading EPUB: ${widget.novel.assetFilePath}");
       final bytes = await rootBundle.load(widget.novel.assetFilePath);
+      debugPrint("EPUB file loaded, size: ${bytes.lengthInBytes} bytes");
+      
       final initialCfi = _prefs?.getString('cfi_${widget.novel.title}');
+      debugPrint("Initial CFI: ${initialCfi ?? 'null'}");
 
-      _controller = EpubController(
-        document: EpubDocument.openData(bytes.buffer.asUint8List()),
-        epubCfi: initialCfi,
-      );
+      // Parse EPUB document
+      try {
+        final document = EpubDocument.openData(bytes.buffer.asUint8List());
+        debugPrint("EPUB document parsed successfully");
+        
+        _controller = EpubController(
+          document: document,
+          epubCfi: initialCfi,
+        );
+        debugPrint("EPUB controller created successfully");
+      } catch (parseError) {
+        debugPrint("Error parsing EPUB document: $parseError");
+        throw Exception("Failed to parse EPUB file. The file may be corrupted. Error: $parseError");
+      }
 
       _controller!.currentValueListenable.addListener(() async {
         final cfi = _controller!.generateEpubCfi();
@@ -137,13 +152,28 @@ class _ReaderScreenState extends State<ReaderScreen> {
       _waitAndShowInterstitialAd();
     } catch (e) {
       debugPrint("Error loading book: $e");
+      debugPrint("Novel title: ${widget.novel.title}");
+      debugPrint("Asset path: ${widget.novel.assetFilePath}");
       if (mounted) {
-        final isAr = Localizations.localeOf(context).languageCode == 'ar';
+        final locale = Localizations.localeOf(context);
+        final isAr = locale.languageCode == 'ar';
+        final isRu = locale.languageCode == 'ru';
+        
+        String errorMsg;
+        if (isAr) {
+          errorMsg = 'حدث خطأ في تحميل الرواية. يرجى المحاولة مرة أخرى.\n\n'
+              'المسار: ${widget.novel.assetFilePath}';
+        } else if (isRu) {
+          errorMsg = 'Произошла ошибка при загрузке романа. Пожалуйста, попробуйте снова.\n\n'
+              'Путь: ${widget.novel.assetFilePath}';
+        } else {
+          errorMsg = 'Error loading book. Please try again.\n\n'
+              'Path: ${widget.novel.assetFilePath}';
+        }
+        
         setState(() {
           _isLoading = false;
-          _errorMessage = isAr 
-            ? 'حدث خطأ في تحميل الرواية. يرجى المحاولة مرة أخرى.'
-            : 'Error loading book. Please try again.';
+          _errorMessage = errorMsg;
         });
       }
     }
@@ -866,12 +896,23 @@ class _ReaderScreenState extends State<ReaderScreen> {
                           style: Theme.of(context).textTheme.bodyLarge,
                         ),
                         const SizedBox(height: 24),
-                        ElevatedButton.icon(
-                          onPressed: () => _initReader(),
-                          icon: const Icon(Icons.refresh),
-                          label: Text(Localizations.localeOf(context).languageCode == 'ar' 
-                            ? 'إعادة المحاولة' 
-                            : 'Retry'),
+                        Builder(
+                          builder: (context) {
+                            final locale = Localizations.localeOf(context);
+                            String retryText;
+                            if (locale.languageCode == 'ar') {
+                              retryText = 'إعادة المحاولة';
+                            } else if (locale.languageCode == 'ru') {
+                              retryText = 'Повторить попытку';
+                            } else {
+                              retryText = 'Retry';
+                            }
+                            return ElevatedButton.icon(
+                              onPressed: () => _initReader(),
+                              icon: const Icon(Icons.refresh),
+                              label: Text(retryText),
+                            );
+                          },
                         ),
                       ],
                     ),

@@ -22,13 +22,13 @@ import '../widgets/banner_ad_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
-    super.key, 
+    super.key,
     required this.languageCode,
     required this.onDarkModeChanged,
     required this.isDarkMode,
   });
 
-  final String languageCode; // 'ar' | 'en'
+  final String languageCode; // 'ar' | 'en' | 'ru'
   final Function(bool) onDarkModeChanged;
   final bool isDarkMode;
 
@@ -40,6 +40,14 @@ class _HomeScreenState extends State<HomeScreen> {
   late SharedPreferences _prefs;
   Set<String> _favoriteIds = {};
   bool _isLoading = true;
+
+  // Helper method to get localized text
+  String _getText(String arabic, String english, String russian) {
+    if (widget.languageCode == 'ar') return arabic;
+    if (widget.languageCode == 'ru') return russian;
+    return english;
+  }
+
   NativeAd? _nativeAd;
   bool _isNativeAdLoaded = false;
   InterstitialAd? _interstitialAd;
@@ -162,6 +170,84 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
+  static const List<Novel> _russianNovels = [
+    Novel(
+      title: 'Том 1. Повести и рассказы 1846-1847',
+      assetFilePath: 'assets/books/ru/1.epub',
+      coverAssetPath: 'assets/covers/1.png',
+    ),
+    Novel(
+      title: 'Том 2. Повести и рассказы 1848-1852',
+      assetFilePath: 'assets/books/ru/2.epub',
+      coverAssetPath: 'assets/covers/2.png',
+    ),
+    Novel(
+      title: 'Том 3. Село Степанчиково и его обитатели',
+      assetFilePath: 'assets/books/ru/3.epub',
+      coverAssetPath: 'assets/covers/3.png',
+    ),
+    Novel(
+      title: 'Том 4. Произведения 1861-1866',
+      assetFilePath: 'assets/books/ru/4.epub',
+      coverAssetPath: 'assets/covers/4.png',
+    ),
+    Novel(
+      title: 'Том 5. Преступление и наказание',
+      assetFilePath: 'assets/books/ru/5.epub',
+      coverAssetPath: 'assets/covers/5.png',
+    ),
+    Novel(
+      title: 'Том 6. Идиот',
+      assetFilePath: 'assets/books/ru/6.epub',
+      coverAssetPath: 'assets/covers/6.png',
+    ),
+    Novel(
+      title: 'Том 7. Бесы',
+      assetFilePath: 'assets/books/ru/7.epub',
+      coverAssetPath: 'assets/covers/7.png',
+    ),
+    Novel(
+      title: 'Том 8. Вечный муж. Подросток',
+      assetFilePath: 'assets/books/ru/8.epub',
+      coverAssetPath: 'assets/covers/8.png',
+    ),
+    Novel(
+      title: 'Том 9. Братья Карамазовы',
+      assetFilePath: 'assets/books/ru/9.epub',
+      coverAssetPath: 'assets/covers/9.png',
+    ),
+    Novel(
+      title: 'Том 10. Братья Карамазовы. Неоконченное',
+      assetFilePath: 'assets/books/ru/10.epub',
+      coverAssetPath: 'assets/covers/10.png',
+    ),
+    Novel(
+      title: 'Том 11. Публицистика 1860-х годов',
+      assetFilePath: 'assets/books/ru/11.epub',
+      coverAssetPath: 'assets/covers/11.png',
+    ),
+    Novel(
+      title: 'Том 12. Дневник писателя 1873. Статьи и очерки',
+      assetFilePath: 'assets/books/ru/12.epub',
+      coverAssetPath: 'assets/covers/12.png',
+    ),
+    Novel(
+      title: 'Том 13. Дневник писателя 1876',
+      assetFilePath: 'assets/books/ru/13.epub',
+      coverAssetPath: 'assets/covers/13.png',
+    ),
+    Novel(
+      title: 'Том 14. Дневник писателя 1877, 1980, 1981',
+      assetFilePath: 'assets/books/ru/14.epub',
+      coverAssetPath: 'assets/covers/14.png',
+    ),
+    Novel(
+      title: 'Том 15. Письма 1834-1881',
+      assetFilePath: 'assets/books/ru/15.epub',
+      coverAssetPath: 'assets/covers/15.png',
+    ),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -179,22 +265,23 @@ class _HomeScreenState extends State<HomeScreen> {
           _rewardedInterstitialAd = ad;
           _isRewardedInterstitialAdReady = true;
         });
-        _rewardedInterstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
-          onAdDismissedFullScreenContent: (ad) {
-            ad.dispose();
-            setState(() {
-              _isRewardedInterstitialAdReady = false;
-            });
-            _loadRewardedInterstitialAd();
-          },
-          onAdFailedToShowFullScreenContent: (ad, error) {
-            ad.dispose();
-            setState(() {
-              _isRewardedInterstitialAdReady = false;
-            });
-            _loadRewardedInterstitialAd();
-          },
-        );
+        _rewardedInterstitialAd!.fullScreenContentCallback =
+            FullScreenContentCallback(
+              onAdDismissedFullScreenContent: (ad) {
+                ad.dispose();
+                setState(() {
+                  _isRewardedInterstitialAdReady = false;
+                });
+                _loadRewardedInterstitialAd();
+              },
+              onAdFailedToShowFullScreenContent: (ad, error) {
+                ad.dispose();
+                setState(() {
+                  _isRewardedInterstitialAdReady = false;
+                });
+                _loadRewardedInterstitialAd();
+              },
+            );
       },
       onAdFailedToLoad: (error) {
         setState(() {
@@ -205,14 +292,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showRewardedInterstitialAd() {
-    if (_rewardedInterstitialAd != null && _isRewardedInterstitialAdReady && mounted) {
+    if (_rewardedInterstitialAd != null &&
+        _isRewardedInterstitialAdReady &&
+        mounted) {
       _rewardedInterstitialAd!.show(
         onUserEarnedReward: (ad, reward) {
           if (mounted) {
-            final isAr = widget.languageCode == 'ar';
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(isAr ? 'شكراً لك! حصلت على المكافأة' : 'Thank you! You earned a reward'),
+                content: Text(
+                  _getText(
+                    'شكراً لك! حصلت على المكافأة',
+                    'Thank you! You earned a reward',
+                    'Спасибо! Вы получили награду',
+                  ),
+                ),
                 backgroundColor: Colors.green,
               ),
             );
@@ -261,11 +355,16 @@ class _HomeScreenState extends State<HomeScreen> {
             _loadInterstitialAd();
           },
         );
-        
+
         // Show opening ad if it hasn't been shown yet and ad is ready
         if (!_hasShownOpeningAd && mounted) {
-          Future.delayed(const Duration(milliseconds: 500), () {
-            if (mounted && !_hasShownOpeningAd && _isInterstitialAdReady) {
+          // Wait a bit for UI to be ready, then show the ad
+          Future.delayed(const Duration(milliseconds: 800), () {
+            if (mounted &&
+                !_hasShownOpeningAd &&
+                _isInterstitialAdReady &&
+                _interstitialAd != null) {
+              debugPrint('🎬 Showing opening ad...');
               _showOpeningAd();
             }
           });
@@ -276,12 +375,22 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _isInterstitialAdReady = false;
         });
-        // Retry loading after a delay
-        Future.delayed(const Duration(seconds: 3), () {
-          if (mounted) {
-            _loadInterstitialAd();
-          }
-        });
+        // Retry loading after a delay (only if opening ad hasn't been shown yet)
+        if (!_hasShownOpeningAd) {
+          Future.delayed(const Duration(seconds: 3), () {
+            if (mounted && !_hasShownOpeningAd) {
+              debugPrint('🔄 Retrying to load opening ad...');
+              _loadInterstitialAd();
+            }
+          });
+        } else {
+          // If opening ad was already shown, just retry for future use
+          Future.delayed(const Duration(seconds: 3), () {
+            if (mounted) {
+              _loadInterstitialAd();
+            }
+          });
+        }
       },
       onAdClosed: () {
         setState(() {
@@ -293,12 +402,26 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showOpeningAd() {
-    if (_interstitialAd != null && _isInterstitialAdReady && mounted) {
+    if (_interstitialAd != null &&
+        _isInterstitialAdReady &&
+        mounted &&
+        !_hasShownOpeningAd) {
+      debugPrint('✅ Opening ad is ready, showing now...');
       _hasShownOpeningAd = true;
       _interstitialAd!.show();
       setState(() {
         _isInterstitialAdReady = false;
       });
+      // Load next ad for future use
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted) {
+          _loadInterstitialAd();
+        }
+      });
+    } else {
+      debugPrint(
+        '⚠️ Cannot show opening ad: ad=${_interstitialAd != null}, ready=$_isInterstitialAdReady, mounted=$mounted, shown=$_hasShownOpeningAd',
+      );
     }
   }
 
@@ -307,7 +430,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // Create a Completer to wait for ad dismissal
       final completer = Completer<void>();
       final currentAd = _interstitialAd;
-      
+
       // Set up callback to complete when ad is dismissed
       currentAd!.fullScreenContentCallback = FullScreenContentCallback(
         onAdDismissedFullScreenContent: (ad) {
@@ -332,21 +455,23 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         },
       );
-      
+
       currentAd.show();
       setState(() {
         _isInterstitialAdReady = false;
       });
-      
+
       // Wait for ad to be dismissed (max 30 seconds timeout)
-      await completer.future.timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          debugPrint('⚠️ Ad timeout - continuing navigation');
-        },
-      ).catchError((error) {
-        debugPrint('⚠️ Error waiting for ad: $error');
-      });
+      await completer.future
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () {
+              debugPrint('⚠️ Ad timeout - continuing navigation');
+            },
+          )
+          .catchError((error) {
+            debugPrint('⚠️ Error waiting for ad: $error');
+          });
     }
     // Continue navigation whether ad was shown or not
   }
@@ -405,7 +530,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
     await _prefs.setStringList('favorites', _favoriteIds.toList());
-    
+
     // Show rewarded interstitial ad when adding to favorites (not when removing)
     if (!wasFavorite) {
       Future.delayed(const Duration(milliseconds: 500), () {
@@ -423,6 +548,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Novel> get _favoriteNovels {
     final allNovels = widget.languageCode == 'ar'
         ? _arabicNovels
+        : widget.languageCode == 'ru'
+        ? _russianNovels
         : _englishNovels;
     return allNovels.where((n) => _isFavorite(n)).toList();
   }
@@ -440,7 +567,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _surpriseMe() async {
-    final novels = widget.languageCode == 'ar' ? _arabicNovels : _englishNovels;
+    final novels = widget.languageCode == 'ar'
+        ? _arabicNovels
+        : widget.languageCode == 'ru'
+        ? _russianNovels
+        : _englishNovels;
     if (novels.isEmpty) return;
     final random = Random();
     final randomNovel = novels[random.nextInt(novels.length)];
@@ -454,24 +585,33 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _showLanguageDialog() async {
     final isAr = widget.languageCode == 'ar';
+    final isRu = widget.languageCode == 'ru';
     final shouldChange = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(isAr ? 'تغيير اللغة؟' : 'Change Language?'),
+        title: Text(
+          isAr
+              ? 'تغيير اللغة؟'
+              : isRu
+              ? 'Изменить язык?'
+              : 'Change Language?',
+        ),
         content: Text(
           isAr
               ? 'هل تود العودة لشاشة اختيار اللغة؟'
+              : isRu
+              ? 'Вернуться к выбору языка?'
               : 'Return to language selection?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text(isAr ? 'إلغاء' : 'Cancel'),
+            child: Text(_getText('إلغاء', 'Cancel', 'Отмена')),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text(isAr ? 'تأكيد' : 'Confirm'),
+            child: Text(_getText('تأكيد', 'Confirm', 'Подтвердить')),
           ),
         ],
       ),
@@ -518,7 +658,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(width: 8),
               Text(
-                isAr ? 'اقتباس اليوم' : 'Quote of the Day',
+                _getText('اقتباس اليوم', 'Quote of the Day', 'Цитата дня'),
                 style: GoogleFonts.playfairDisplay(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -555,7 +695,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     isArabic: isAr,
                   );
                 },
-                tooltip: isAr ? 'مشاركة كصورة' : 'Share as Image',
+                tooltip: _getText(
+                  'مشاركة كصورة',
+                  'Share as Image',
+                  'Поделиться как изображение',
+                ),
               ),
               Expanded(
                 child: Align(
@@ -591,7 +735,11 @@ class _HomeScreenState extends State<HomeScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
           child: Text(
-            isAr ? 'مفضلاتك السريعة' : 'Your Quick Favorites',
+            _getText(
+              'مفضلاتك السريعة',
+              'Your Quick Favorites',
+              'Ваши быстрые избранные',
+            ),
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: theme.colorScheme.primary,
@@ -609,7 +757,7 @@ class _HomeScreenState extends State<HomeScreen> {
               return Container(
                 width: 120,
                 margin: const EdgeInsets.only(right: 12),
-                  child: InkWell(
+                child: InkWell(
                   onTap: () async {
                     await _showInterstitialAdOnBookClick();
                     if (mounted) {
@@ -686,9 +834,13 @@ class _HomeScreenState extends State<HomeScreen> {
       isAr
           ? 'تحميل تطبيق روائع دوستويفسكي - مكتبة روايات فيودور دوستويفسكي الكاملة\n\n$appUrl'
           : 'Download Dostoyevsky Novels App - Complete library of Fyodor Dostoyevsky\'s novels\n\n$appUrl',
-      subject: isAr ? 'روائع دوستويفسكي' : 'Dostoyevsky Novels',
+      subject: _getText(
+        'روائع دوستويفسكي',
+        'Dostoyevsky Novels',
+        'Романы Достоевского',
+      ),
     );
-    
+
     // Show rewarded interstitial ad after sharing
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
@@ -703,7 +855,11 @@ class _HomeScreenState extends State<HomeScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final novels = widget.languageCode == 'ar' ? _arabicNovels : _englishNovels;
+    final novels = widget.languageCode == 'ar'
+        ? _arabicNovels
+        : widget.languageCode == 'ru'
+        ? _russianNovels
+        : _englishNovels;
     final theme = Theme.of(context);
     final isAr = widget.languageCode == 'ar';
 
@@ -715,7 +871,11 @@ class _HomeScreenState extends State<HomeScreen> {
         scrolledUnderElevation: 2,
         centerTitle: true,
         title: Text(
-          isAr ? 'مكتبة دوستويفسكي' : "Dostoyevsky Library",
+          _getText(
+            'مكتبة دوستويفسكي',
+            'Dostoyevsky Library',
+            'Библиотека Достоевского',
+          ),
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
@@ -724,20 +884,23 @@ class _HomeScreenState extends State<HomeScreen> {
         child: novels.isEmpty
             ? Center(
                 child: Text(
-                  isAr ? 'لا توجد روايات' : 'No novels available',
+                  _getText(
+                    'لا توجد روايات',
+                    'No novels available',
+                    'Нет доступных романов',
+                  ),
                   style: theme.textTheme.titleMedium,
                 ),
               )
             : CustomScrollView(
                 slivers: [
-                  // Quote of the Day
-                  SliverToBoxAdapter(
-                    child: _buildQuoteOfTheDay(context, isAr, theme),
-                  ),
+                  // Quote of the Day (hidden for Russian language)
+                  if (widget.languageCode != 'ru')
+                    SliverToBoxAdapter(
+                      child: _buildQuoteOfTheDay(context, isAr, theme),
+                    ),
                   // Native Ad (always show to prevent layout jumps)
-                  SliverToBoxAdapter(
-                    child: _buildNativeAd(context, theme),
-                  ),
+                  SliverToBoxAdapter(child: _buildNativeAd(context, theme)),
                   // Quick Favorites (if any)
                   if (_quickFavorites.isNotEmpty)
                     SliverToBoxAdapter(
@@ -748,7 +911,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
                       child: Text(
-                        isAr ? "واصل القراءة" : "Continue Reading",
+                        _getText(
+                          "واصل القراءة",
+                          "Continue Reading",
+                          "Продолжить чтение",
+                        ),
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: theme.colorScheme.primary,
@@ -756,16 +923,33 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
+                  // Russian title above novels (only for Russian language)
+                  if (widget.languageCode == 'ru')
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                        child: Text(
+                          'Собрание сочинений в пятнадцати томах',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                            fontSize: 20,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
                   // Novels Grid
                   SliverPadding(
                     padding: const EdgeInsets.all(16),
                     sliver: SliverGrid(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 20,
-                        crossAxisSpacing: 16,
-                        childAspectRatio: 0.65,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 20,
+                            crossAxisSpacing: 16,
+                            childAspectRatio: 0.65,
+                          ),
                       delegate: SliverChildBuilderDelegate((context, index) {
                         if (index >= novels.length) {
                           return const SizedBox.shrink();
@@ -773,21 +957,24 @@ class _HomeScreenState extends State<HomeScreen> {
                         final novel = novels[index];
                         return _NovelCard(
                           novel: novel,
-                          isAr: isAr,
+                          languageCode: widget.languageCode,
                           isFavorite: _isFavorite(novel),
                           rating: NovelRatings.getRating(novel.title),
                           progress: _getProgress(novel.title),
                           onTap: () async {
                             await _showInterstitialAdOnBookClick();
                             if (mounted) {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => ReaderScreen(novel: novel),
-                                ),
-                              ).then((_) {
-                                // Refresh data when returning from reader
-                                _refreshData();
-                              });
+                              Navigator.of(context)
+                                  .push(
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          ReaderScreen(novel: novel),
+                                    ),
+                                  )
+                                  .then((_) {
+                                    // Refresh data when returning from reader
+                                    _refreshData();
+                                  });
                             }
                           },
                           onFavoriteTap: () => _toggleFavorite(novel),
@@ -798,7 +985,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Comments Section (after all novels)
                   SliverToBoxAdapter(
                     child: CommentsSection(
-                      key: ValueKey(_isSignedIn), // Rebuild when auth state changes
+                      key: ValueKey(
+                        _isSignedIn,
+                      ), // Rebuild when auth state changes
                       isArabic: isAr,
                       onCommentPosted: () {
                         // Show rewarded interstitial ad after posting comment
@@ -813,7 +1002,7 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _surpriseMe,
         icon: const Icon(Icons.auto_awesome_rounded),
-        label: Text(isAr ? 'مفاجئني' : 'Surprise Me'),
+        label: Text(_getText('مفاجئني', 'Surprise Me', 'Удиви меня')),
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: theme.colorScheme.onPrimary,
       ),
@@ -836,7 +1025,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               child: Text(
-                isAr ? 'جميع الروايات محملة مسبقاً' : 'All novels are pre-loaded',
+                _getText(
+                  'جميع الروايات محملة مسبقاً',
+                  'All novels are pre-loaded',
+                  'Все романы предзагружены',
+                ),
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
@@ -862,7 +1055,9 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                if (_isSignedIn && _userPhotoUrl != null && _userPhotoUrl!.isNotEmpty)
+                if (_isSignedIn &&
+                    _userPhotoUrl != null &&
+                    _userPhotoUrl!.isNotEmpty)
                   CircleAvatar(
                     radius: 30,
                     backgroundImage: NetworkImage(_userPhotoUrl!),
@@ -872,7 +1067,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     radius: 30,
                     backgroundColor: theme.colorScheme.primary,
                     child: Text(
-                      _userName?.isNotEmpty == true ? _userName![0].toUpperCase() : 'U',
+                      _userName?.isNotEmpty == true
+                          ? _userName![0].toUpperCase()
+                          : 'U',
                       style: TextStyle(
                         color: theme.colorScheme.onPrimary,
                         fontSize: 24,
@@ -882,7 +1079,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 const SizedBox(height: 8),
                 Text(
-                  _isSignedIn ? (_userName ?? (isAr ? 'مستخدم' : 'User')) : (isAr ? 'روائع دوستويفسكي' : 'Dostoyevsky Library'),
+                  _isSignedIn
+                      ? (_userName ??
+                            _getText('مستخدم', 'User', 'Пользователь'))
+                      : _getText(
+                          'روائع دوستويفسكي',
+                          'Dostoyevsky Library',
+                          'Библиотека Достоевского',
+                        ),
                   style: theme.textTheme.titleLarge?.copyWith(
                     color: theme.colorScheme.onPrimaryContainer,
                     fontWeight: FontWeight.bold,
@@ -898,7 +1102,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icons.login_rounded,
                 color: theme.colorScheme.primary,
               ),
-              title: Text(isAr ? 'تسجيل الدخول' : 'Sign In'),
+              title: Text(_getText('تسجيل الدخول', 'Sign In', 'Войти')),
               onTap: () async {
                 Navigator.pop(context);
                 final success = await Navigator.of(context).push(
@@ -924,7 +1128,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icons.logout_rounded,
                 color: theme.colorScheme.error,
               ),
-              title: Text(isAr ? 'تسجيل الخروج' : 'Sign Out'),
+              title: Text(_getText('تسجيل الخروج', 'Sign Out', 'Выйти')),
               onTap: () async {
                 Navigator.pop(context);
                 await AuthService.signOut();
@@ -932,7 +1136,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(isAr ? 'تم تسجيل الخروج' : 'Signed out'),
+                      content: Text(
+                        _getText('تم تسجيل الخروج', 'Signed out', 'Вы вышли'),
+                      ),
                     ),
                   );
                 }
@@ -944,9 +1150,9 @@ class _HomeScreenState extends State<HomeScreen> {
               Icons.favorite_rounded,
               color: theme.colorScheme.primary,
             ),
-            title: Text(isAr ? 'المفضلة' : 'Favorites'),
+            title: Text(_getText('المفضلة', 'Favorites', 'Избранное')),
             subtitle: Text(
-              '${_favoriteNovels.length} ${isAr ? 'رواية' : 'novels'}',
+              '${_favoriteNovels.length} ${_getText('رواية', 'novels', 'романов')}',
               style: theme.textTheme.bodySmall,
             ),
             onTap: () {
@@ -966,24 +1172,30 @@ class _HomeScreenState extends State<HomeScreen> {
           // Dark Mode Toggle
           SwitchListTile(
             secondary: Icon(
-              widget.isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+              widget.isDarkMode
+                  ? Icons.dark_mode_rounded
+                  : Icons.light_mode_rounded,
               color: theme.colorScheme.onSurfaceVariant,
             ),
-            title: Text(isAr ? 'الوضع الليلي' : 'Dark Mode'),
+            title: Text(_getText('الوضع الليلي', 'Dark Mode', 'Тёмный режим')),
             value: widget.isDarkMode,
             onChanged: widget.onDarkModeChanged,
           ),
           const Divider(),
           // Google Play Link
           ListTile(
-            leading: Icon(
-              Icons.star_rounded,
-              color: Colors.amber,
+            leading: Icon(Icons.star_rounded, color: Colors.amber),
+            title: Text(
+              _getText(
+                'قيم التطبيق على Google Play',
+                'Rate App on Google Play',
+                'Оценить приложение в Google Play',
+              ),
             ),
-            title: Text(isAr ? 'قيم التطبيق على Google Play' : 'Rate App on Google Play'),
             onTap: () async {
               Navigator.pop(context);
-              const url = 'https://play.google.com/store/apps/details?id=com.spinel.dostoevsky';
+              const url =
+                  'https://play.google.com/store/apps/details?id=com.spinel.dostoevsky';
               final uri = Uri.parse(url);
               if (await canLaunchUrl(uri)) {
                 await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -991,7 +1203,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(isAr ? 'لا يمكن فتح الرابط' : 'Could not open link'),
+                      content: Text(
+                        _getText(
+                          'لا يمكن فتح الرابط',
+                          'Could not open link',
+                          'Не удалось открыть ссылку',
+                        ),
+                      ),
                     ),
                   );
                 }
@@ -1003,7 +1221,9 @@ class _HomeScreenState extends State<HomeScreen> {
               Icons.share_rounded,
               color: theme.colorScheme.onSurfaceVariant,
             ),
-            title: Text(isAr ? 'مشاركة التطبيق' : 'Share App'),
+            title: Text(
+              _getText('مشاركة التطبيق', 'Share App', 'Поделиться приложением'),
+            ),
             onTap: () {
               Navigator.pop(context);
               _shareApp();
@@ -1011,12 +1231,48 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           ListTile(
             leading: Icon(
+              Icons.store_rounded,
+              color: theme.colorScheme.primary,
+            ),
+            title: Text(
+              _getText(
+                'للمزيد من الروايات زورو صفحتنا على متجر بلاي',
+                'Visit our Play Store page for more novels',
+                'Посетите нашу страницу в Play Store для большего количества романов',
+              ),
+            ),
+            onTap: () async {
+              Navigator.pop(context);
+              const url =
+                  'https://play.google.com/store/apps/dev?id=7189513262046406321';
+              final uri = Uri.parse(url);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              } else {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _getText(
+                          'لا يمكن فتح الرابط',
+                          'Could not open link',
+                          'Не удалось открыть ссылку',
+                        ),
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+          ListTile(
+            leading: Icon(
               Icons.translate_rounded,
               color: theme.colorScheme.onSurfaceVariant,
             ),
-            title: Text(isAr ? 'الإعدادات' : 'Settings'),
+            title: Text(_getText('الإعدادات', 'Settings', 'Настройки')),
             subtitle: Text(
-              isAr ? 'تغيير اللغة' : 'Change Language',
+              _getText('تغيير اللغة', 'Change Language', 'Изменить язык'),
               style: theme.textTheme.bodySmall,
             ),
             onTap: () {
@@ -1034,8 +1290,8 @@ class _HomeScreenState extends State<HomeScreen> {
     // The container will be empty until ad loads
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: _isNativeAdLoaded && _nativeAd != null 
-          ? const EdgeInsets.all(12) 
+      padding: _isNativeAdLoaded && _nativeAd != null
+          ? const EdgeInsets.all(12)
           : EdgeInsets.zero,
       decoration: _isNativeAdLoaded && _nativeAd != null
           ? BoxDecoration(
@@ -1058,13 +1314,17 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(isAr ? 'حول التطبيق' : 'About App'),
+        title: Text(_getText('حول التطبيق', 'About App', 'О приложении')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              isAr ? 'روائع دوستويفسكي' : 'Dostoyevsky Library',
+              _getText(
+                'روائع دوستويفسكي',
+                'Dostoyevsky Library',
+                'Библиотека Достоевского',
+              ),
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -1078,7 +1338,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Version 1.0.0',
+              'Version 1.0.2',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -1088,7 +1348,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text(isAr ? 'إغلاق' : 'Close'),
+            child: Text(_getText('إغلاق', 'Close', 'Закрыть')),
           ),
         ],
       ),
@@ -1100,7 +1360,7 @@ class _NovelCard extends StatelessWidget {
   const _NovelCard({
     required this.novel,
     required this.onTap,
-    required this.isAr,
+    required this.languageCode,
     required this.isFavorite,
     required this.onFavoriteTap,
     required this.rating,
@@ -1109,11 +1369,18 @@ class _NovelCard extends StatelessWidget {
 
   final Novel novel;
   final VoidCallback onTap;
-  final bool isAr;
+  final String languageCode;
   final bool isFavorite;
   final VoidCallback onFavoriteTap;
   final double rating;
   final double progress;
+
+  // Helper method to get localized text
+  String _getText(String arabic, String english, String russian) {
+    if (languageCode == 'ar') return arabic;
+    if (languageCode == 'ru') return russian;
+    return english;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1216,10 +1483,8 @@ class _NovelCard extends StatelessWidget {
                   children: [
                     Text(
                       progress > 0
-                          ? '${(progress * 100).toInt()}% ${isAr ? "اكتمل" : "Done"}'
-                          : isAr
-                          ? 'لم يبدأ'
-                          : 'Not Started',
+                          ? '${(progress * 100).toInt()}% ${_getText("اكتمل", "Done", "Готово")}'
+                          : _getText('لم يبدأ', 'Not Started', 'Не начато'),
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontSize: 10,
