@@ -61,8 +61,8 @@ class ShareHelper {
               alignment: Alignment.centerRight,
               child: Text(
                 isArabic
-                    ? '- $source -\nفيودور دوستويفسكي'
-                    : '- $source -\nFyodor Dostoyevsky',
+                    ? '- $source -\nليو تولستوي'
+                    : '- $source -\nLeo Tolstoy',
                 style: GoogleFonts.playfairDisplay(
                   fontSize: 18,
                   color: Colors.brown.shade700,

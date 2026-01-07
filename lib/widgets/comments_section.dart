@@ -32,6 +32,26 @@ class _CommentsSectionState extends State<CommentsSection> {
     super.initState();
     _loadComments();
     _checkAuthStatus();
+    // Add test comment on first load (for testing)
+    _addTestCommentIfNeeded();
+  }
+
+  Future<void> _addTestCommentIfNeeded() async {
+    // Only add test comment if no comments exist
+    final comments = await CommentsService.getComments();
+    if (comments.isEmpty) {
+      // Add a test comment
+      await CommentsService.addComment(
+        userId: 'test_user_001',
+        userName: 'مستخدم تجريبي',
+        userPhotoUrl: null,
+        text: 'هذا تعليق تجريبي لاختبار نظام التعليقات في التطبيق. التطبيق يعمل بشكل ممتاز! 🎉',
+      );
+      // Reload comments to show the test comment
+      if (mounted) {
+        await _loadComments();
+      }
+    }
   }
 
   @override

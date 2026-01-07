@@ -1,7 +1,11 @@
-# PowerShell script to get SHA-1 from keystore
+# PowerShell script to get SHA-1 from keystore for Tolstoy app
 # Usage: .\get_sha1.ps1
 
-Write-Host "Getting SHA-1 from keystore..." -ForegroundColor Green
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "  SHA-1 Fingerprint Extractor" -ForegroundColor Cyan
+Write-Host "  App: Tolstoy" -ForegroundColor Cyan
+Write-Host "  Package: com.spinel.tolstoy" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 $keystorePath = "android\app\upload-keystore.jks"
@@ -9,99 +13,88 @@ $alias = "upload"
 $storepass = "dostoevsky2024"
 $keypass = "dostoevsky2024"
 
-# Check if Java is available
-$javaPath = Get-Command java -ErrorAction SilentlyContinue
-if (-not $javaPath) {
-    Write-Host "Error: Java is not found in PATH" -ForegroundColor Red
-    Write-Host "Please install Java JDK or add it to PATH" -ForegroundColor Yellow
-    exit 1
-}
-
-# Check if keystore exists
-if (-not (Test-Path $keystorePath)) {
-    Write-Host "Error: Keystore file not found at: $keystorePath" -ForegroundColor Red
-    exit 1
-}
-
-Write-Host "Keystore found. Extracting SHA-1..." -ForegroundColor Yellow
-Write-Host ""
-
 # Try to find keytool
 $keytoolPath = $null
-$possiblePaths = @(
+
+# Check common Java locations
+$locations = @(
     "$env:JAVA_HOME\bin\keytool.exe",
-    "$env:ProgramFiles\Java\*\bin\keytool.exe",
-    "$env:ProgramFiles(x86)\Java\*\bin\keytool.exe"
+    "$env:LOCALAPPDATA\Android\Sdk\jbr\bin\keytool.exe",
+    "$env:LOCALAPPDATA\Android\Sdk\jre\bin\keytool.exe"
 )
 
-foreach ($path in $possiblePaths) {
-    $resolved = Resolve-Path $path -ErrorAction SilentlyContinue
-    if ($resolved) {
-        $keytoolPath = $resolved[0].Path
+foreach ($loc in $locations) {
+    if (Test-Path $loc) {
+        $keytoolPath = $loc
         break
     }
 }
 
+# Try to find in Program Files
 if (-not $keytoolPath) {
-    # Try to find keytool in PATH
-    $keytoolCmd = Get-Command keytool -ErrorAction SilentlyContinue
-    if ($keytoolCmd) {
-        $keytoolPath = $keytoolCmd.Path
+    $javaDirs = Get-ChildItem "$env:ProgramFiles\Java" -ErrorAction SilentlyContinue
+    foreach ($dir in $javaDirs) {
+        $kt = Join-Path $dir.FullName "bin\keytool.exe"
+        if (Test-Path $kt) {
+            $keytoolPath = $kt
+            break
+        }
     }
 }
 
 if (-not $keytoolPath) {
-    Write-Host "Error: keytool not found" -ForegroundColor Red
+    Write-Host "❌ keytool not found automatically" -ForegroundColor Red
     Write-Host ""
-    Write-Host "Please use one of these methods:" -ForegroundColor Yellow
-    Write-Host "1. Use Android Studio: Gradle > Tasks > android > signingReport" -ForegroundColor Cyan
-    Write-Host "2. Use command: cd android && gradlew signingReport" -ForegroundColor Cyan
-    Write-Host "3. Install Java JDK and add it to PATH" -ForegroundColor Cyan
+    Write-Host "Please run this command manually:" -ForegroundColor Yellow
+    Write-Host "keytool -list -v -keystore $keystorePath -alias $alias -storepass $storepass -keypass $keypass" -ForegroundColor White
+    Write-Host ""
+    Write-Host "Or use Android Studio:" -ForegroundColor Yellow
+    Write-Host "  Gradle > Tasks > android > signingReport" -ForegroundColor White
     exit 1
 }
 
-# Run keytool
-Write-Host "Using keytool: $keytoolPath" -ForegroundColor Gray
+Write-Host "✅ Found keytool: $keytoolPath" -ForegroundColor Green
+Write-Host ""
+
+if (-not (Test-Path $keystorePath)) {
+    Write-Host "❌ Keystore not found: $keystorePath" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "📋 Extracting SHA-1..." -ForegroundColor Cyan
 Write-Host ""
 
 try {
-    $output = & $keytoolPath -list -v -keystore $keystorePath -alias $alias -storepass $storepass -keypass $keypass 2>&1
+    $result = & $keytoolPath -list -v -keystore $keystorePath -alias $alias -storepass $storepass -keypass $keypass 2>&1
     
-    # Extract SHA1
-    $sha1Line = $output | Select-String -Pattern "SHA1:"
+    # Display output
+    $result
+    
+    # Extract SHA-1
+    $sha1Line = $result | Select-String -Pattern "SHA1:"
     if ($sha1Line) {
-        $sha1 = ($sha1Line -split "SHA1:")[1].Trim()
-        Write-Host "=" * 60 -ForegroundColor Green
-        Write-Host "SHA-1 Fingerprint:" -ForegroundColor Green
-        Write-Host $sha1 -ForegroundColor White -BackgroundColor DarkGreen
-        Write-Host "=" * 60 -ForegroundColor Green
+        $sha1 = ($sha1Line.ToString() -split "SHA1:")[1].Trim()
         Write-Host ""
-        Write-Host "Copy this SHA-1 and add it to Firebase Console:" -ForegroundColor Yellow
-        Write-Host "1. Go to: https://console.firebase.google.com/" -ForegroundColor Cyan
-        Write-Host "2. Select project: audible-43582" -ForegroundColor Cyan
-        Write-Host "3. Go to Project Settings > Your apps > com.spinel.dostoevsky" -ForegroundColor Cyan
-        Write-Host "4. Add fingerprint in 'SHA certificate fingerprints' section" -ForegroundColor Cyan
+        Write-Host "========================================" -ForegroundColor Green
+        Write-Host "  SHA-1 Fingerprint:" -ForegroundColor Green
+        Write-Host "  $sha1" -ForegroundColor Yellow
+        Write-Host "========================================" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "📝 Add this SHA-1 to Firebase Console:" -ForegroundColor Cyan
+        Write-Host "   Project Settings > Your apps > com.spinel.tolstoy" -ForegroundColor White
         Write-Host ""
         
-        # Copy to clipboard if possible
+        # Try to copy to clipboard
         try {
             $sha1 | Set-Clipboard
-            Write-Host "SHA-1 has been copied to clipboard!" -ForegroundColor Green
+            Write-Host "✅ SHA-1 copied to clipboard!" -ForegroundColor Green
         } catch {
-            Write-Host "Could not copy to clipboard. Please copy manually." -ForegroundColor Yellow
+            Write-Host "⚠️ Could not copy to clipboard" -ForegroundColor Yellow
         }
     } else {
-        Write-Host "Error: Could not extract SHA-1 from keystore output" -ForegroundColor Red
-        Write-Host "Output:" -ForegroundColor Yellow
-        $output
+        Write-Host ""
+        Write-Host "⚠️ Could not extract SHA-1. Check output above." -ForegroundColor Yellow
     }
 } catch {
-    Write-Host "Error running keytool: $_" -ForegroundColor Red
-    Write-Host ""
-    Write-Host "Alternative method:" -ForegroundColor Yellow
-    Write-Host "cd android" -ForegroundColor Cyan
-    Write-Host "gradlew signingReport" -ForegroundColor Cyan
+    Write-Host "❌ Error: $_" -ForegroundColor Red
 }
-
-
-

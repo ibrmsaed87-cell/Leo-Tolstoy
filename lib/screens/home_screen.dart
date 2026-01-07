@@ -9,16 +9,18 @@ import 'dart:async';
 
 import '../models/novel.dart';
 import 'reader_screen.dart';
+import 'war_and_peace_parts_screen.dart';
+import 'anna_karenina_parts_screen.dart';
 import 'favorites_screen.dart';
 import 'login_screen.dart';
 import '../main.dart';
-import '../utils/dostoyevsky_quotes.dart';
+import '../utils/tolstoy_quotes.dart';
 import '../utils/novel_ratings.dart';
 import '../utils/share_helper.dart';
 import '../utils/ad_helper.dart';
 import '../utils/auth_service.dart';
 import '../widgets/comments_section.dart';
-import '../widgets/banner_ad_widget.dart';
+// import '../widgets/banner_ad_widget.dart'; // Temporarily disabled
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -61,190 +63,380 @@ class _HomeScreenState extends State<HomeScreen> {
 
   static const List<Novel> _arabicNovels = [
     Novel(
-      title: 'الجريمة والعقاب',
-      assetFilePath: 'assets/books/ar/crime_and_punishment.epub',
-      coverAssetPath: 'assets/covers/crime_and_punishment.png',
+      title: 'الحرب والسلم',
+      assetFilePath: 'assets/books/ar/al7rb1.epub',
+      coverAssetPath: 'assets/covers/war_and_peace.png',
     ),
     Novel(
-      title: 'الإخوة كارامازوف',
-      assetFilePath: 'assets/books/ar/the_brothers_karamazov.epub',
-      coverAssetPath: 'assets/covers/the_brothers_karamazov.png',
+      title: 'حِكَم النَّبي مُحَمَّد',
+      assetFilePath: 'assets/books/ar/moh.epub', // EPUB file
+      coverAssetPath: 'assets/covers/moh.png',
     ),
     Novel(
-      title: 'الأبله',
-      assetFilePath: 'assets/books/ar/the_idiot.epub',
-      coverAssetPath: 'assets/covers/the_idiot.png',
+      title: 'بدائع الخيال',
+      assetFilePath: 'assets/books/ar/bda2a.epub', // EPUB file
+      coverAssetPath: 'assets/covers/bda2a.png',
     ),
     Novel(
-      title: 'الشياطين',
-      assetFilePath: 'assets/books/ar/demons.epub',
-      coverAssetPath: 'assets/covers/demons.png',
+      title: 'اعترافات تولستوي',
+      assetFilePath: 'assets/books/ar/a3trafat.epub', // EPUB file
+      coverAssetPath: 'assets/covers/a3trafat.png',
     ),
     Novel(
-      title: 'المقامر',
-      assetFilePath: 'assets/books/ar/the_gambler.epub',
-      coverAssetPath: 'assets/covers/the_gambler.png',
+      title: 'إنجيل تولستوي وديانته',
+      assetFilePath: 'assets/books/ar/engel.epub', // EPUB file
+      coverAssetPath: 'assets/covers/engel.png',
     ),
     Novel(
-      title: 'مذكرات من قبو',
-      assetFilePath: 'assets/books/ar/Notes_from_the_Underground.epub',
-      coverAssetPath: 'assets/covers/notes.jpg',
+      title: 'مملكة جهنم والخمر',
+      assetFilePath: 'assets/books/ar/jhanam.epub', // EPUB file
+      coverAssetPath: 'assets/covers/jhanam.png',
     ),
     Novel(
-      title: 'حلم العم',
-      assetFilePath: 'assets/books/ar/Uncle_Dream.epub',
-      coverAssetPath: 'assets/covers/Uncle_Dream.png',
+      title: 'انا كاتيا',
+      assetFilePath: 'assets/books/ar/anakatya1.pdf',
+      coverAssetPath: 'assets/covers/anna_karenina.png',
     ),
     Novel(
-      title: 'الزوج الأبدي',
-      assetFilePath: 'assets/books/ar/Permanent_Husband.epub',
-      coverAssetPath: 'assets/covers/husband.jpg',
+      title: 'البعث',
+      assetFilePath: 'assets/books/ar/alb3th.pdf',
+      coverAssetPath: 'assets/covers/alb3th.png',
     ),
     Novel(
-      title: 'الليالي البيضاء وقصص اخرى',
-      assetFilePath: 'assets/books/ar/White_Nights.epub',
-      coverAssetPath: 'assets/covers/White_Nights.png',
+      title: 'مصرع إيفان إيليتش',
+      assetFilePath: 'assets/books/ar/msr3.pdf',
+      coverAssetPath: 'assets/covers/msr3.png',
+    ),
+    Novel(
+      title: 'حكايات شعبية',
+      assetFilePath: 'assets/books/ar/al7kayat.pdf',
+      coverAssetPath: 'assets/covers/al7kayat.png',
+    ),
+    Novel(
+      title: 'نهاية حب',
+      assetFilePath: 'assets/books/ar/nhaya.pdf',
+      coverAssetPath: 'assets/covers/nhaya.png',
+    ),
+    Novel(
+      title: 'كتاب طريق الحياة',
+      assetFilePath: 'assets/books/ar/trig.pdf',
+      coverAssetPath: 'assets/covers/trig.png',
+    ),
+    Novel(
+      title: 'سوناتة لكروتزر',
+      assetFilePath: 'assets/books/ar/sw.pdf',
+      coverAssetPath: 'assets/covers/sw.png',
+    ),
+    Novel(
+      title: 'ماذا علينا أن نفعل',
+      assetFilePath: 'assets/books/ar/maza.pdf',
+      coverAssetPath: 'assets/covers/maza.png',
+    ),
+    Novel(
+      title: 'ما هو الفن',
+      assetFilePath: 'assets/books/ar/alfn.pdf',
+      coverAssetPath: 'assets/covers/alfn.png',
+    ),
+    Novel(
+      title: 'القوزاق',
+      assetFilePath: 'assets/books/ar/gwazg.pdf',
+      coverAssetPath: 'assets/covers/gwazg.png',
+    ),
+    Novel(
+      title: 'السعادة الزوجية',
+      assetFilePath: 'assets/books/ar/als3ada.pdf',
+      coverAssetPath: 'assets/covers/als3ada.png',
+    ),
+    Novel(
+      title: 'عن الحياة',
+      assetFilePath: 'assets/books/ar/al7yah.pdf',
+      coverAssetPath: 'assets/covers/al7yah.png',
+    ),
+    Novel(
+      title: 'في الدين والعقل والفلسفة',
+      assetFilePath: 'assets/books/ar/aldeen.pdf',
+      coverAssetPath: 'assets/covers/aldeen.png',
+    ),
+    Novel(
+      title: 'لحن كرويتزر',
+      assetFilePath: 'assets/books/ar/kr.pdf',
+      coverAssetPath: 'assets/covers/kr.png',
+    ),
+    Novel(
+      title: 'السيد والخادم',
+      assetFilePath: 'assets/books/ar/alseed.pdf',
+      coverAssetPath: 'assets/covers/alseed.png',
+    ),
+    Novel(
+      title: 'الشيطان',
+      assetFilePath: 'assets/books/ar/alshitan.pdf',
+      coverAssetPath: 'assets/covers/alshitan.png',
+    ),
+    Novel(
+      title: 'العجوزان',
+      assetFilePath: 'assets/books/ar/al3jwzan.pdf',
+      coverAssetPath: 'assets/covers/al3jwzan.png',
+    ),
+    Novel(
+      title: 'العلم والاخلاق والسياسة',
+      assetFilePath: 'assets/books/ar/al3lm.pdf',
+      coverAssetPath: 'assets/covers/al3lm.png',
+    ),
+    Novel(
+      title: 'سعادة الاسرة',
+      assetFilePath: 'assets/books/ar/sa3ada.pdf',
+      coverAssetPath: 'assets/covers/sa3ada.png',
+    ),
+    Novel(
+      title: 'السلطة والحرية',
+      assetFilePath: 'assets/books/ar/alsolta.pdf',
+      coverAssetPath: 'assets/covers/alsolta.png',
     ),
   ];
 
   static const List<Novel> _englishNovels = [
     Novel(
-      title: 'Crime and Punishment',
-      assetFilePath: 'assets/books/en/crime_and_punishment.epub',
-      coverAssetPath: 'assets/covers/crime_and_punishment.png',
+      title: 'War and Peace',
+      assetFilePath: 'assets/books/en/war_and_peace.epub',
+      coverAssetPath: 'assets/covers/war_and_peace.png',
     ),
     Novel(
-      title: 'The Brothers Karamazov',
-      assetFilePath: 'assets/books/en/brothers_karamazov.epub',
-      coverAssetPath: 'assets/covers/the_brothers_karamazov.png',
+      title: 'Anna Karenina',
+      assetFilePath: 'assets/books/en/anna_karenina.epub',
+      coverAssetPath: 'assets/covers/anna_karenina.png',
     ),
     Novel(
-      title: 'The Idiot',
-      assetFilePath: 'assets/books/en/the_idiot.epub',
-      coverAssetPath: 'assets/covers/the_idiot.png',
+      title: 'Resurrection',
+      assetFilePath: 'assets/books/en/resurrection.epub',
+      coverAssetPath: 'assets/covers/resurrection.png',
     ),
     Novel(
-      title: 'Demons',
-      assetFilePath: 'assets/books/en/demons.epub',
-      coverAssetPath: 'assets/covers/demons.png',
+      title: 'The Kreutzer Sonata',
+      assetFilePath: 'assets/books/en/the_kreutzer_sonata.epub',
+      coverAssetPath: 'assets/covers/the_kreutzer_sonata.png',
     ),
     Novel(
-      title: 'The Gambler',
-      assetFilePath: 'assets/books/en/the_gambler.epub',
-      coverAssetPath: 'assets/covers/the_gambler.png',
+      title: 'Master and Man',
+      assetFilePath: 'assets/books/en/master_and_man.epub',
+      coverAssetPath: 'assets/covers/master_and_man.png',
     ),
     Novel(
-      title: 'Notes from the Underground',
-      assetFilePath: 'assets/books/en/Notes_from_the_Underground.epub',
-      coverAssetPath: 'assets/covers/notes.jpg',
+      title: 'Father Sergius',
+      assetFilePath: 'assets/books/en/father_sergius.epub',
+      coverAssetPath: 'assets/covers/father_sergius.png',
     ),
     Novel(
-      title: 'Poor Folk',
-      assetFilePath: 'assets/books/en/Poor_Folk.epub',
-      coverAssetPath: 'assets/covers/Poor_Folk.jpg',
+      title: 'The Devil',
+      assetFilePath: 'assets/books/en/devil.epub',
+      coverAssetPath: 'assets/covers/devil.png',
     ),
     Novel(
-      title: 'The Grand Inquisitor',
-      assetFilePath: 'assets/books/en/The_Grand_Inquisitor.epub',
-      coverAssetPath: 'assets/covers/The_Grand_Inquisitor.png',
+      title: 'The Forged Coupon',
+      assetFilePath: 'assets/books/en/the_forged_coupon.epub',
+      coverAssetPath: 'assets/covers/the_forged_coupon.png',
     ),
     Novel(
-      title: 'The house of the dead',
-      assetFilePath: 'assets/books/en/The_house_of_the_dead.epub',
-      coverAssetPath: 'assets/covers/The_house_of_the_dead.png',
+      title: 'Katia',
+      assetFilePath: 'assets/books/en/katia.epub',
+      coverAssetPath: 'assets/covers/katia.png',
     ),
     Novel(
-      title: 'Uncles Dream and The Permanent Husband',
-      assetFilePath: 'assets/books/en/Uncles_Dream.epub',
-      coverAssetPath: 'assets/covers/Uncle_Dream.png',
+      title: 'Childhood',
+      assetFilePath: 'assets/books/en/childhood.epub',
+      coverAssetPath: 'assets/covers/childhood.png',
     ),
     Novel(
-      title: 'Short Stories',
-      assetFilePath: 'assets/books/en/Short_Stories.epub',
-      coverAssetPath: 'assets/covers/Short_Stories.png',
+      title: 'Boyhood',
+      assetFilePath: 'assets/books/en/boyhood.epub',
+      coverAssetPath: 'assets/covers/boyhood.png',
     ),
     Novel(
-      title: 'White Nights and Other Stories',
-      assetFilePath: 'assets/books/en/White_Nights.epub',
-      coverAssetPath: 'assets/covers/White_Nights.png',
+      title: 'Youth',
+      assetFilePath: 'assets/books/en/youth.epub',
+      coverAssetPath: 'assets/covers/youth.png',
+    ),
+    Novel(
+      title: 'The Kingdom of God Is Within You',
+      assetFilePath: 'assets/books/en/the_kingdom.epub',
+      coverAssetPath: 'assets/covers/the_kingdom.png',
+    ),
+    Novel(
+      title: 'My Religion',
+      assetFilePath: 'assets/books/en/my_religion.epub',
+      coverAssetPath: 'assets/covers/my_religion.png',
+    ),
+    Novel(
+      title: 'What Is Art?',
+      assetFilePath: 'assets/books/en/art.epub',
+      coverAssetPath: 'assets/covers/art.png',
+    ),
+    Novel(
+      title: 'A Letter to a Hindu',
+      assetFilePath: 'assets/books/en/letter_hindu.epub',
+      coverAssetPath: 'assets/covers/letter_hindu.png',
+    ),
+    Novel(
+      title: 'Bethink Yourselves!',
+      assetFilePath: 'assets/books/en/yourselves.epub',
+      coverAssetPath: 'assets/covers/yourselves.png',
+    ),
+    Novel(
+      title: 'What to Do?',
+      assetFilePath: 'assets/books/en/thoughts.epub',
+      coverAssetPath: 'assets/covers/thoughts.png',
+    ),
+    Novel(
+      title: 'Tolstoy on Shakespeare',
+      assetFilePath: 'assets/books/en/shakespeare.epub',
+      coverAssetPath: 'assets/covers/shakespeare.png',
+    ),
+    Novel(
+      title: 'Sevastopol Sketches',
+      assetFilePath: 'assets/books/en/sevastopol.epub',
+      coverAssetPath: 'assets/covers/sevastopol.png',
+    ),
+    Novel(
+      title: 'What Men Live By',
+      assetFilePath: 'assets/books/en/men_live.epub',
+      coverAssetPath: 'assets/covers/men_live.png',
+    ),
+    Novel(
+      title: 'The Power of Darkness',
+      assetFilePath: 'assets/books/en/power_darkness.epub',
+      coverAssetPath: 'assets/covers/power_darkness.png',
+    ),
+    Novel(
+      title: 'The Light Shines in Darkness',
+      assetFilePath: 'assets/books/en/shines_darkness.epub',
+      coverAssetPath: 'assets/covers/shines_darkness.png',
+    ),
+    Novel(
+      title: 'Fruits of Culture',
+      assetFilePath: 'assets/books/en/fruits_culture.epub',
+      coverAssetPath: 'assets/covers/fruits_culture.png',
+    ),
+    Novel(
+      title: 'A Russian Proprietor and Other Stories',
+      assetFilePath: 'assets/books/en/russian_proprietor.epub',
+      coverAssetPath: 'assets/covers/russian_proprietor.png',
+    ),
+    Novel(
+      title: 'The Invaders and Other Stories',
+      assetFilePath: 'assets/books/en/invaders.epub',
+      coverAssetPath: 'assets/covers/invaders.png',
     ),
   ];
 
   static const List<Novel> _russianNovels = [
     Novel(
-      title: 'Том 1. Повести и рассказы 1846-1847',
+      title: 'Том 1. Детство, Отрочество, Юность',
       assetFilePath: 'assets/books/ru/1.epub',
-      coverAssetPath: 'assets/covers/1.png',
+      coverAssetPath: 'assets/covers/r1.png',
     ),
     Novel(
-      title: 'Том 2. Повести и рассказы 1848-1852',
+      title: 'Том 2. Произведения 1852-1856 гг',
       assetFilePath: 'assets/books/ru/2.epub',
-      coverAssetPath: 'assets/covers/2.png',
+      coverAssetPath: 'assets/covers/r2.png',
     ),
     Novel(
-      title: 'Том 3. Село Степанчиково и обитатели деревни',
+      title: 'Том 3. Произведения 1857-1863 гг',
       assetFilePath: 'assets/books/ru/3.epub',
-      coverAssetPath: 'assets/covers/3.png',
+      coverAssetPath: 'assets/covers/r3.png',
     ),
     Novel(
-      title: 'Том 4. Произведения 1861-1866',
+      title: 'Том 4. Война и мир',
       assetFilePath: 'assets/books/ru/4.epub',
-      coverAssetPath: 'assets/covers/4.png',
+      coverAssetPath: 'assets/covers/r4.png',
     ),
     Novel(
-      title: 'Том 5. Преступление и наказание',
+      title: 'Том 5. Война и мир',
       assetFilePath: 'assets/books/ru/5.epub',
-      coverAssetPath: 'assets/covers/5.png',
+      coverAssetPath: 'assets/covers/r5.png',
     ),
     Novel(
-      title: 'Том 6. Идиот',
+      title: 'Том 6. Война и мир',
       assetFilePath: 'assets/books/ru/6.epub',
-      coverAssetPath: 'assets/covers/6.png',
+      coverAssetPath: 'assets/covers/r6.png',
     ),
     Novel(
-      title: 'Том 7. Бесы',
+      title: 'Том 7. Война и мир',
       assetFilePath: 'assets/books/ru/7.epub',
-      coverAssetPath: 'assets/covers/7.png',
+      coverAssetPath: 'assets/covers/r7.png',
     ),
     Novel(
-      title: 'Том 8. Вечный муж. Подросток',
+      title: 'Том 8. Анна Каренина',
       assetFilePath: 'assets/books/ru/8.epub',
-      coverAssetPath: 'assets/covers/8.png',
+      coverAssetPath: 'assets/covers/r8.png',
     ),
     Novel(
-      title: 'Том 9. Братья Карамазовы',
+      title: 'Том 9. Анна Каренина',
       assetFilePath: 'assets/books/ru/9.epub',
-      coverAssetPath: 'assets/covers/9.png',
+      coverAssetPath: 'assets/covers/r9.png',
     ),
     Novel(
-      title: 'Том 10. Братья Карамазовы. Неоконченное',
+      title: 'Том 10. Произведения 1872-1886 гг',
       assetFilePath: 'assets/books/ru/10.epub',
-      coverAssetPath: 'assets/covers/10.png',
+      coverAssetPath: 'assets/covers/r10.png',
     ),
     Novel(
-      title: 'Том 11. Публицистика 1860 годов',
+      title: 'Том 11. Драматические произведения 1864-1910 гг',
       assetFilePath: 'assets/books/ru/11.epub',
-      coverAssetPath: 'assets/covers/11.png',
+      coverAssetPath: 'assets/covers/r11.png',
     ),
     Novel(
-      title: 'Том 12. Дневник писателя 1873. Статьи и очерки',
+      title: 'Том 12. Произведения 1885-1902 гг',
       assetFilePath: 'assets/books/ru/12.epub',
-      coverAssetPath: 'assets/covers/12.png',
+      coverAssetPath: 'assets/covers/r12.png',
     ),
     Novel(
-      title: 'Том 13. Дневник писателя 1876',
+      title: 'Том 13. Воскресение',
       assetFilePath: 'assets/books/ru/13.epub',
-      coverAssetPath: 'assets/covers/13.png',
+      coverAssetPath: 'assets/covers/r13.png',
     ),
     Novel(
-      title: 'Том 14. Дневник писателя 1877, 1980, 1981',
+      title: 'Том 14. Произведения 1903-1910 гг',
       assetFilePath: 'assets/books/ru/14.epub',
-      coverAssetPath: 'assets/covers/14.png',
+      coverAssetPath: 'assets/covers/r14.png',
     ),
     Novel(
-      title: 'Том 15. Письма 1834-1881',
+      title: 'Том 15. Статьи о литературе и искусстве',
       assetFilePath: 'assets/books/ru/15.epub',
-      coverAssetPath: 'assets/covers/15.png',
+      coverAssetPath: 'assets/covers/r15.png',
+    ),
+    Novel(
+      title: 'Том 16. Избранные публицистические статьи',
+      assetFilePath: 'assets/books/ru/16.epub',
+      coverAssetPath: 'assets/covers/r16.png',
+    ),
+    Novel(
+      title: 'Том 17. Избранные публицистические статьи',
+      assetFilePath: 'assets/books/ru/17.epub',
+      coverAssetPath: 'assets/covers/r17.png',
+    ),
+    Novel(
+      title: 'Том 18. Избранные письма 1842-1881',
+      assetFilePath: 'assets/books/ru/18.epub',
+      coverAssetPath: 'assets/covers/r18.png',
+    ),
+    Novel(
+      title: 'Том 19. Избранные письма 1882-1899',
+      assetFilePath: 'assets/books/ru/19.epub',
+      coverAssetPath: 'assets/covers/r19.png',
+    ),
+    Novel(
+      title: 'Том 20. Избранные письма 1900-1910',
+      assetFilePath: 'assets/books/ru/20.epub',
+      coverAssetPath: 'assets/covers/r20.png',
+    ),
+    Novel(
+      title: 'Том 21. Избранные дневники 1847-1894',
+      assetFilePath: 'assets/books/ru/21.epub',
+      coverAssetPath: 'assets/covers/r21.png',
+    ),
+    Novel(
+      title: 'Том 22. Избранные дневники 1895-1910',
+      assetFilePath: 'assets/books/ru/22.epub',
+      coverAssetPath: 'assets/covers/r22.png',
     ),
   ];
 
@@ -650,16 +842,14 @@ class _HomeScreenState extends State<HomeScreen> {
       await _prefs.remove('language_code');
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const DostoyevskyReaderApp()),
+        MaterialPageRoute(builder: (_) => const TolstoyReaderApp()),
         (_) => false,
       );
     }
   }
 
   Widget _buildQuoteOfTheDay(BuildContext context, bool isAr, ThemeData theme) {
-    final quote = DostoyevskyQuotes.getQuoteOfTheDayByLanguage(
-      widget.languageCode,
-    );
+    final quote = TolstoyQuotes.getQuoteOfTheDayByLanguage(widget.languageCode);
     final sepiaColor = const Color(0xFFF4ECD8);
 
     return Container(
@@ -860,16 +1050,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void _shareApp() async {
     final isAr = widget.languageCode == 'ar';
     final appUrl =
-        'https://play.google.com/store/apps/details?id=com.spinel.dostoevsky';
+        'https://play.google.com/store/apps/details?id=com.spinel.tolstoy';
     await Share.share(
       isAr
           ? 'تحميل تطبيق روائع دوستويفسكي - مكتبة روايات فيودور دوستويفسكي الكاملة\n\n$appUrl'
-          : 'Download Dostoyevsky Novels App - Complete library of Fyodor Dostoyevsky\'s novels\n\n$appUrl',
-      subject: _getText(
-        'روائع دوستويفسكي',
-        'Dostoyevsky Novels',
-        'Романы Достоевского',
-      ),
+          : 'Download Tolstoy Novels App - Complete library of Leo Tolstoy\'s novels\n\n$appUrl',
+      subject: _getText('روائع تولستوي', 'Tolstoy Novels', 'Романы Толстого'),
     );
 
     // Show rewarded interstitial ad after sharing
@@ -911,11 +1097,7 @@ class _HomeScreenState extends State<HomeScreen> {
         scrolledUnderElevation: 2,
         centerTitle: true,
         title: Text(
-          _getText(
-            'مكتبة دوستويفسكي',
-            'Dostoyevsky Library',
-            'Библиотека Достоевского',
-          ),
+          _getText('مكتبة تولستوي', 'Tolstoy Library', 'Библиотека Толстого'),
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
@@ -1003,19 +1185,56 @@ class _HomeScreenState extends State<HomeScreen> {
                           onTap: () async {
                             debugPrint('📖 Opening novel: ${novel.title}');
                             debugPrint('📖 Novel path: ${novel.assetFilePath}');
-                            await _showInterstitialAdOnBookClick();
-                            if (mounted) {
-                              Navigator.of(context)
-                                  .push(
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          ReaderScreen(novel: novel),
-                                    ),
-                                  )
-                                  .then((_) {
-                                    // Refresh data when returning from reader
-                                    _refreshData();
-                                  });
+
+                            // Check if this is "الحرب والسلم" in Arabic
+                            if (novel.title == 'الحرب والسلم' &&
+                                widget.languageCode == 'ar') {
+                              // Open parts screen for War and Peace
+                              await _showInterstitialAdOnBookClick();
+                              if (mounted) {
+                                Navigator.of(context)
+                                    .push(
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const WarAndPeacePartsScreen(),
+                                      ),
+                                    )
+                                    .then((_) {
+                                      _refreshData();
+                                    });
+                              }
+                            } else if (novel.title == 'انا كاتيا' &&
+                                widget.languageCode == 'ar') {
+                              // Open parts screen for Anna Karenina
+                              await _showInterstitialAdOnBookClick();
+                              if (mounted) {
+                                Navigator.of(context)
+                                    .push(
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const AnnaKareninaPartsScreen(),
+                                      ),
+                                    )
+                                    .then((_) {
+                                      _refreshData();
+                                    });
+                              }
+                            } else {
+                              // Open reader screen directly for other books
+                              await _showInterstitialAdOnBookClick();
+                              if (mounted) {
+                                Navigator.of(context)
+                                    .push(
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            ReaderScreen(novel: novel),
+                                      ),
+                                    )
+                                    .then((_) {
+                                      // Refresh data when returning from reader
+                                      _refreshData();
+                                    });
+                              }
                             }
                           },
                           onFavoriteTap: () => _toggleFavorite(novel),
@@ -1052,8 +1271,8 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Banner Ad
-            const BannerAdWidget(),
+            // Banner Ad - Temporarily disabled
+            // const BannerAdWidget(),
             // Info text
             Container(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -1124,8 +1343,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? (_userName ??
                             _getText('مستخدم', 'User', 'Пользователь'))
                       : _getText(
-                          'روائع دوستويفسكي',
-                          'Dostoyevsky Library',
+                          'روائع تولستوي',
+                          'Tolstoy Library',
                           'Библиотека Достоевского',
                         ),
                   style: theme.textTheme.titleLarge?.copyWith(
@@ -1236,7 +1455,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onTap: () async {
               Navigator.pop(context);
               const url =
-                  'https://play.google.com/store/apps/details?id=com.spinel.dostoevsky';
+                  'https://play.google.com/store/apps/details?id=com.spinel.tolstoy';
               final uri = Uri.parse(url);
               if (await canLaunchUrl(uri)) {
                 await launchUrl(uri, mode: LaunchMode.externalApplication);

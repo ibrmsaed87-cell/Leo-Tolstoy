@@ -28,17 +28,17 @@ void main() async {
   // Initialize FCM Service
   await FCMService.initialize();
 
-  runApp(const DostoyevskyReaderApp());
+  runApp(const TolstoyReaderApp());
 }
 
-class DostoyevskyReaderApp extends StatefulWidget {
-  const DostoyevskyReaderApp({super.key});
+class TolstoyReaderApp extends StatefulWidget {
+  const TolstoyReaderApp({super.key});
 
   @override
-  State<DostoyevskyReaderApp> createState() => _DostoyevskyReaderAppState();
+  State<TolstoyReaderApp> createState() => _TolstoyReaderAppState();
 }
 
-class _DostoyevskyReaderAppState extends State<DostoyevskyReaderApp>
+class _TolstoyReaderAppState extends State<TolstoyReaderApp>
     with WidgetsBindingObserver {
   static const prefsLangKey = 'language_code';
   static const prefsDarkModeKey = 'dark_mode';
@@ -228,7 +228,7 @@ class _DostoyevskyReaderAppState extends State<DostoyevskyReaderApp>
 
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          title: 'Dostoyevsky Reader (Offline)',
+          title: 'Tolstoy Reader (Offline)',
           theme: ThemeData(
             useMaterial3: true,
             colorScheme: lightColorScheme,
@@ -282,7 +282,7 @@ class _DostoyevskyReaderAppState extends State<DostoyevskyReaderApp>
                     // Rebuild MaterialApp by forcing a new app instance route.
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
-                        builder: (_) => const DostoyevskyReaderApp(),
+                        builder: (_) => const TolstoyReaderApp(),
                       ),
                     );
                   },

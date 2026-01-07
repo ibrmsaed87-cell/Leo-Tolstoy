@@ -1,6 +1,6 @@
 {
-    "name": "dostoyevsky_novels_app",
-    "short_name": "dostoyevsky_novels_app",
+    "name": "tolstoy",
+    "short_name": "tolstoy",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

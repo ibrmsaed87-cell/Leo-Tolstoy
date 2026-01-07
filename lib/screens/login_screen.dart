@@ -111,7 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 
                 // Title
                 Text(
-                  _isArabic ? 'مكتبة دوستويفسكي' : 'Dostoyevsky Library',
+                  _isArabic ? 'مكتبة تولستوي' : 'Tolstoy Library',
                   style: GoogleFonts.playfairDisplay(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,

@@ -2,24 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class AdHelper {
-  // Production Ad Unit IDs from AdMob
+  // Test Ad Unit IDs from AdMob (for testing only)
   // Native Ad (متقدمة مدمجة مع المحتوى)
-  static const String nativeAdUnitId = 'ca-app-pub-9118481973136364/5278674929';
+  static const String nativeAdUnitId = 'ca-app-pub-3940256099942544/2247696110';
   
   // Rewarded Ad (بيني بمكافأة)
-  static const String rewardedAdUnitId = 'ca-app-pub-9118481973136364/9988076121';
+  static const String rewardedAdUnitId = 'ca-app-pub-3940256099942544/5224354917';
   
   // Rewarded Interstitial Ad (بيني بمكافأة - نوع متقدم)
-  static const String rewardedInterstitialAdUnitId = 'ca-app-pub-9118481973136364/9988076121';
+  static const String rewardedInterstitialAdUnitId = 'ca-app-pub-3940256099942544/5354046379';
   
   // Interstitial Ad (فتح التطبيق/القراءة)
-  static const String interstitialAdUnitId = 'ca-app-pub-9118481973136364/4200740430';
+  static const String interstitialAdUnitId = 'ca-app-pub-3940256099942544/1033173712';
   
   // Banner Ad (بانر)
-  static const String bannerAdUnitId = 'ca-app-pub-9118481973136364/4182033918';
-  
+  static const String bannerAdUnitId = 'ca-app-pub-3940256099942544/6300978111';
+
   // App Open Ad (إعلان فتح التطبيق)
-  static const String appOpenAdUnitId = 'ca-app-pub-9118481973136364/4200740430';
+  static const String appOpenAdUnitId = 'ca-app-pub-3940256099942544/3419835294';
   
   // Static reference to App Open Ad
   static AppOpenAd? _appOpenAd;

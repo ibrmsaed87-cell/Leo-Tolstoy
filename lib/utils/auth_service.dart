@@ -38,7 +38,7 @@ class AuthService {
         print('⚠️ Google Sign-In configuration error. Please check:');
         print('   1. SHA-1 certificate is added in Firebase Console');
         print('   2. google-services.json contains Android OAuth client (client_type: 1)');
-        print('   3. Package name matches: com.spinel.dostoevsky');
+        print('   3. Package name matches: com.spinel.tolstoy');
       }
       rethrow; // Re-throw to allow better error handling in UI
     }

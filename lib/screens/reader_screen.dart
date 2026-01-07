@@ -12,6 +12,7 @@ import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 import '../models/novel.dart';
 import '../utils/ad_helper.dart';
@@ -28,6 +29,7 @@ class ReaderScreen extends StatefulWidget {
 
 class _ReaderScreenState extends State<ReaderScreen> {
   EpubController? _controller;
+  PdfViewerController? _pdfController;
   bool _chromeVisible = true;
   double _fontSize = 20;
   ReaderThemeMode _themeMode = ReaderThemeMode.sepia;
@@ -36,6 +38,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
   int? _lastChapterIndex; // Track last chapter to detect chapter completion
   bool _showRewardedAdOnSettings =
       false; // Option to show ad when opening settings
+  bool _isPdf = false; // Track if file is PDF
+  Uint8List? _pdfBytes; // Store PDF bytes
 
   final ScreenshotController _screenshot = ScreenshotController();
   late AudioPlayer _audioPlayer;
@@ -71,6 +75,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   void dispose() {
     _audioPlayer.dispose();
     _controller?.dispose();
+    _pdfController?.dispose();
     _interstitialAd?.dispose();
     _rewardedAd?.dispose();
     _rewardedInterstitialAd?.dispose();
@@ -98,12 +103,53 @@ class _ReaderScreenState extends State<ReaderScreen> {
       // Continue even if settings fail
     }
 
-    // Step 2: Load EPUB file from assets (CRITICAL - must succeed)
-    debugPrint("📚 [BOOK LOADING] Starting EPUB file load...");
+    // Step 2: Load file from assets (CRITICAL - must succeed)
+    // Check if file is PDF or EPUB
+    final assetPath = widget.novel.assetFilePath;
+    
+    // Force specific novels to be read as EPUB (regardless of extension)
+    final forcedEpubNovels = [
+      'الحرب والسلم',
+      'الحرب والسلم الكتاب الأول',
+      'الحرب والسلم الكتاب الثاني',
+      'الحرب والسلم الكتاب الثالث',
+      'الحرب والسلم الكتاب الرابع',
+      'حِكَم النَّبي مُحَمَّد',
+      'بدائع الخيال',
+      'اعترافات تولستوي',
+      'إنجيل تولستوي وديانته',
+      'مملكة جهنم والخمر',
+    ];
+    
+    // Force specific file paths to be read as EPUB
+    final forcedEpubPaths = [
+      'al7rb1.epub',
+      'al7rb2.epub',
+      'al7rb3.epub',
+      'al7rb4.epub',
+      'moh.epub',
+      'bda2a.epub',
+      'a3trafat.epub',
+      'engel.epub',
+      'jhanam.epub',
+    ];
+    
+    final isForcedEpubByTitle = forcedEpubNovels.contains(widget.novel.title);
+    final isForcedEpubByPath = forcedEpubPaths.any((path) => assetPath.contains(path));
+    
+    // Determine file type: force EPUB for specific novels, otherwise check extension
+    if (isForcedEpubByTitle || isForcedEpubByPath) {
+      _isPdf = false; // Force EPUB
+      debugPrint("🔒 [BOOK LOADING] Forcing EPUB format for: ${widget.novel.title}");
+      debugPrint("🔒 [BOOK LOADING] File path: $assetPath");
+    } else {
+      _isPdf = assetPath.toLowerCase().endsWith('.pdf');
+    }
+    
+    debugPrint("📚 [BOOK LOADING] Starting ${_isPdf ? 'PDF' : 'EPUB'} file load...");
     debugPrint("📚 [BOOK LOADING] Novel: ${widget.novel.title}");
 
     // Validate path before attempting to load
-    final assetPath = widget.novel.assetFilePath;
     debugPrint("📚 [BOOK LOADING] Asset path: '$assetPath'");
 
     if (assetPath.isEmpty) {
@@ -138,10 +184,29 @@ class _ReaderScreenState extends State<ReaderScreen> {
     ByteData bytes;
     try {
       bytes = await rootBundle.load(assetPath);
-      debugPrint("✅ [BOOK LOADING] EPUB file loaded successfully!");
+      debugPrint("✅ [BOOK LOADING] ${_isPdf ? 'PDF' : 'EPUB'} file loaded successfully!");
       debugPrint("✅ [BOOK LOADING] File size: ${bytes.lengthInBytes} bytes");
+      
+      // Additional validation for EPUB files
+      if (!_isPdf && bytes.lengthInBytes == 0) {
+        throw Exception("EPUB file is empty");
+      }
+      
+      // Check if EPUB file starts with correct signature (ZIP file signature)
+      if (!_isPdf) {
+        final signature = bytes.buffer.asUint8List().take(4).toList();
+        final isValidEpub = signature[0] == 0x50 && signature[1] == 0x4B && 
+                           (signature[2] == 0x03 || signature[2] == 0x05 || signature[2] == 0x07) &&
+                           (signature[3] == 0x04 || signature[3] == 0x06 || signature[3] == 0x08);
+        if (!isValidEpub) {
+          debugPrint("⚠️ [BOOK LOADING] EPUB file signature check failed");
+          debugPrint("⚠️ [BOOK LOADING] First 4 bytes: ${signature.map((b) => '0x${b.toRadixString(16).padLeft(2, '0')}').join(' ')}");
+        } else {
+          debugPrint("✅ [BOOK LOADING] EPUB file signature validated");
+        }
+      }
     } catch (loadError) {
-      debugPrint("❌ [BOOK LOADING] ERROR loading EPUB file!");
+      debugPrint("❌ [BOOK LOADING] ERROR loading ${_isPdf ? 'PDF' : 'EPUB'} file!");
       debugPrint("❌ [BOOK LOADING] Error type: ${loadError.runtimeType}");
       debugPrint("❌ [BOOK LOADING] Error message: $loadError");
       debugPrint("❌ [BOOK LOADING] Attempted path: '$assetPath'");
@@ -202,11 +267,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
     // Step 3: Convert ByteData to Uint8List correctly
     debugPrint("📚 [BOOK LOADING] Converting ByteData to Uint8List...");
-    Uint8List epubBytes;
+    Uint8List fileBytes;
     try {
-      epubBytes = bytes.buffer.asUint8List();
+      fileBytes = bytes.buffer.asUint8List();
       debugPrint("✅ [BOOK LOADING] Converted to Uint8List successfully!");
-      debugPrint("✅ [BOOK LOADING] Uint8List size: ${epubBytes.length} bytes");
+      debugPrint("✅ [BOOK LOADING] Uint8List size: ${fileBytes.length} bytes");
     } catch (conversionError) {
       debugPrint("❌ Error converting ByteData to Uint8List: $conversionError");
       if (!mounted) return;
@@ -230,29 +295,95 @@ class _ReaderScreenState extends State<ReaderScreen> {
       return;
     }
 
-    // Step 4: Parse EPUB document and create controller
-    debugPrint("📚 [BOOK LOADING] Parsing EPUB document...");
-    final initialCfi = _prefs?.getString('cfi_${widget.novel.title}');
-    debugPrint("📚 [BOOK LOADING] Initial CFI: ${initialCfi ?? 'null'}");
+    // Step 4: Handle PDF or EPUB differently
+    if (_isPdf) {
+      // Handle PDF
+      debugPrint("📚 [BOOK LOADING] Processing PDF file...");
+      try {
+        _pdfBytes = fileBytes;
+        _pdfController = PdfViewerController();
+        debugPrint("✅ [BOOK LOADING] PDF controller created successfully!");
+      } catch (parseError) {
+        debugPrint("❌ Error processing PDF: $parseError");
+        if (!mounted) return;
+        final locale = Localizations.localeOf(context);
+        final isAr = locale.languageCode == 'ar';
+        final isRu = locale.languageCode == 'ru';
 
-    try {
-      // EpubDocument.openData returns a Future<EpubBook>
-      // EpubController expects Future<EpubBook>, so we pass the Future directly
-      final documentFuture = EpubDocument.openData(epubBytes);
-      debugPrint("📚 [BOOK LOADING] EPUB document parsing started...");
+        String errorMsg;
+        if (isAr) {
+          errorMsg = '❌ حدث خطأ في قراءة الملف\n\nالرواية: ${widget.novel.title}';
+        } else if (isRu) {
+          errorMsg = '❌ Произошла ошибка при чтении файла\n\nРоман: ${widget.novel.title}';
+        } else {
+          errorMsg = '❌ Error reading file\n\nNovel: ${widget.novel.title}';
+        }
 
-      _controller = EpubController(
-        document: documentFuture,
-        epubCfi: initialCfi,
-      );
-      debugPrint("✅ [BOOK LOADING] EPUB controller created successfully!");
-    } catch (parseError) {
-      debugPrint("❌ Error parsing EPUB document: $parseError");
-      debugPrint("❌ File size: ${epubBytes.length} bytes");
-      debugPrint("❌ Error type: ${parseError.runtimeType}");
+        setState(() {
+          _isLoading = false;
+          _errorMessage = errorMsg;
+        });
+        return;
+      }
+    } else {
+      // Handle EPUB
+      debugPrint("📚 [BOOK LOADING] Parsing EPUB document...");
+      final initialCfi = _prefs?.getString('cfi_${widget.novel.title}');
+      debugPrint("📚 [BOOK LOADING] Initial CFI: ${initialCfi ?? 'null'}");
 
-      // This is a parsing/corruption issue
-      if (!mounted) return;
+      try {
+        // Validate EPUB file before parsing
+        if (fileBytes.isEmpty) {
+          throw Exception("EPUB file is empty");
+        }
+        
+        debugPrint("📚 [BOOK LOADING] EPUB file bytes: ${fileBytes.length} bytes");
+        debugPrint("📚 [BOOK LOADING] First 10 bytes: ${fileBytes.take(10).map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ')}");
+        
+        // EpubDocument.openData returns a Future<EpubBook>
+        // EpubController expects Future<EpubBook>, so we pass the Future directly
+        debugPrint("📚 [BOOK LOADING] Starting EPUB document parsing...");
+        
+        // Create the document future
+        final documentFuture = EpubDocument.openData(fileBytes);
+        debugPrint("📚 [BOOK LOADING] EPUB document parsing started...");
+
+        // Wait for document to be ready before creating controller
+        // This ensures we catch any parsing errors early
+        final epubBook = await documentFuture.timeout(
+          const Duration(seconds: 30),
+          onTimeout: () {
+            throw TimeoutException("EPUB parsing timed out after 30 seconds");
+          },
+        );
+        
+        debugPrint("✅ [BOOK LOADING] EPUB document parsed successfully!");
+        try {
+          final title = epubBook.Title ?? 'Unknown';
+          final chaptersCount = epubBook.Chapters?.length ?? 0;
+          debugPrint("✅ [BOOK LOADING] EPUB title: $title");
+          debugPrint("✅ [BOOK LOADING] EPUB chapters: $chaptersCount");
+        } catch (e) {
+          debugPrint("⚠️ [BOOK LOADING] Could not read EPUB metadata: $e");
+          // Continue even if metadata reading fails
+        }
+
+        // Create controller with the parsed book
+        _controller = EpubController(
+          document: Future.value(epubBook),
+          epubCfi: initialCfi,
+        );
+        debugPrint("✅ [BOOK LOADING] EPUB controller created successfully!");
+      } catch (parseError) {
+        debugPrint("❌ Error parsing EPUB document: $parseError");
+        debugPrint("❌ File size: ${fileBytes.length} bytes");
+        debugPrint("❌ Error type: ${parseError.runtimeType}");
+        if (parseError is Error) {
+          debugPrint("❌ Stack trace: ${parseError.stackTrace}");
+        }
+
+        // This is a parsing/corruption issue
+        if (!mounted) return;
       final locale = Localizations.localeOf(context);
       final isAr = locale.languageCode == 'ar';
       final isRu = locale.languageCode == 'ru';
@@ -295,25 +426,28 @@ class _ReaderScreenState extends State<ReaderScreen> {
         }
       }
 
-      setState(() {
-        _isLoading = false;
-        _errorMessage = errorMsg;
-      });
-      return; // Stop here - cannot proceed without valid controller
+        setState(() {
+          _isLoading = false;
+          _errorMessage = errorMsg;
+        });
+        return; // Stop here - cannot proceed without valid controller
+      }
     }
 
-    // Step 5: Add CFI listener ONLY after controller is created and ready
-    // Wait a bit to ensure controller is fully initialized
-    await Future.delayed(const Duration(milliseconds: 100));
+    // Step 5: Add CFI listener for EPUB ONLY after controller is created and ready
+    if (!_isPdf) {
+      // Wait a bit to ensure controller is fully initialized
+      await Future.delayed(const Duration(milliseconds: 100));
 
-    if (!mounted || _controller == null) return;
+      if (!mounted || _controller == null) return;
 
-    try {
-      _controller!.currentValueListenable.addListener(_saveProgress);
-      debugPrint("✅ CFI progress listener added");
-    } catch (e) {
-      debugPrint('⚠️ Warning: Error adding CFI listener: $e');
-      // Continue even if listener fails - not critical
+      try {
+        _controller!.currentValueListenable.addListener(_saveProgress);
+        debugPrint("✅ CFI progress listener added");
+      } catch (e) {
+        debugPrint('⚠️ Warning: Error adding CFI listener: $e');
+        // Continue even if listener fails - not critical
+      }
     }
 
     // Step 6: Mark book as loaded successfully
@@ -1112,25 +1246,41 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 ),
               ),
             )
-          : _controller == null
+          : (_controller == null && !_isPdf) || (_isPdf && _pdfBytes == null)
           ? const Center(child: CircularProgressIndicator())
           : Stack(
               children: [
-                // EpubView with text selection enabled
-                // Text selection should work now without GestureDetector interference
-                EpubView(
-                  controller: _controller!,
-                  builders: EpubViewBuilders<DefaultBuilderOptions>(
-                    options: DefaultBuilderOptions(
-                      textStyle: GoogleFonts.amiri(
-                        fontSize: _fontSize,
-                        color: _themeMode == ReaderThemeMode.dark
-                            ? Colors.white
-                            : Colors.black87,
+                // Show PDF or EPUB based on file type
+                _isPdf
+                    ? Container(
+                        color: _getBgColor(),
+                        child: SfPdfViewer.memory(
+                          _pdfBytes!,
+                          controller: _pdfController,
+                          onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
+                            debugPrint("❌ PDF load failed: ${details.error}");
+                            if (mounted) {
+                              setState(() {
+                                _isLoading = false;
+                                _errorMessage = '❌ خطأ في تحميل ملف PDF\n\nالرواية: ${widget.novel.title}';
+                              });
+                            }
+                          },
+                        ),
+                      )
+                    : EpubView(
+                        controller: _controller!,
+                        builders: EpubViewBuilders<DefaultBuilderOptions>(
+                          options: DefaultBuilderOptions(
+                            textStyle: GoogleFonts.amiri(
+                              fontSize: _fontSize,
+                              color: _themeMode == ReaderThemeMode.dark
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
                 // Floating button to toggle chrome visibility
                 Positioned(
                   right: 16,

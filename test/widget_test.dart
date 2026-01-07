@@ -8,16 +8,16 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:dostoyevsky_novels_app/main.dart';
+import 'package:tolstoy/main.dart';
 
 void main() {
   testWidgets('App launches and shows home title', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
       'language_code': 'ar',
     });
-    await tester.pumpWidget(const DostoyevskyReaderApp());
+    await tester.pumpWidget(const TolstoyReaderApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('روايات دوستويفسكي'), findsOneWidget);
+    expect(find.text('روايات تولستوي'), findsOneWidget);
   });
 }

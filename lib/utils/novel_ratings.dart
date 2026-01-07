@@ -1,4 +1,4 @@
-/// Predefined ratings for Dostoyevsky novels
+/// Predefined ratings for Tolstoy novels
 class NovelRatings {
   static const Map<String, double> ratings = {
     // Arabic
