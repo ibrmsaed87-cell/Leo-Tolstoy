@@ -66,131 +66,157 @@ class _HomeScreenState extends State<HomeScreen> {
       title: 'الحرب والسلم',
       assetFilePath: 'assets/books/ar/al7rb1.epub',
       coverAssetPath: 'assets/covers/war_and_peace.png',
+      downloadUrl: 'http://spinel.info/pdfapi/al7rb1.pdf',
     ),
     Novel(
       title: 'حِكَم النَّبي مُحَمَّد',
-      assetFilePath: 'assets/books/ar/moh.epub', // EPUB file
+      assetFilePath: 'assets/books/ar/moh.epub',
       coverAssetPath: 'assets/covers/moh.png',
+      downloadUrl: 'http://spinel.info/pdfapi/moh.pdf',
     ),
     Novel(
       title: 'بدائع الخيال',
-      assetFilePath: 'assets/books/ar/bda2a.epub', // EPUB file
+      assetFilePath: 'assets/books/ar/bda2a.epub',
       coverAssetPath: 'assets/covers/bda2a.png',
+      downloadUrl: 'http://spinel.info/pdfapi/bda2a.pdf',
     ),
     Novel(
       title: 'اعترافات تولستوي',
-      assetFilePath: 'assets/books/ar/a3trafat.epub', // EPUB file
+      assetFilePath: 'assets/books/ar/a3trafat.epub',
       coverAssetPath: 'assets/covers/a3trafat.png',
+      downloadUrl: 'http://spinel.info/pdfapi/a3trafat.pdf',
     ),
     Novel(
       title: 'إنجيل تولستوي وديانته',
-      assetFilePath: 'assets/books/ar/engel.epub', // EPUB file
+      assetFilePath: 'assets/books/ar/engel.epub',
       coverAssetPath: 'assets/covers/engel.png',
+      downloadUrl: 'http://spinel.info/pdfapi/engel.pdf',
     ),
     Novel(
       title: 'مملكة جهنم والخمر',
-      assetFilePath: 'assets/books/ar/jhanam.epub', // EPUB file
+      assetFilePath: 'assets/books/ar/jhanam.epub',
       coverAssetPath: 'assets/covers/jhanam.png',
+      downloadUrl: 'http://spinel.info/pdfapi/jhanam.pdf',
     ),
     Novel(
       title: 'انا كاتيا',
       assetFilePath: 'assets/books/ar/anakatya1.pdf',
       coverAssetPath: 'assets/covers/anna_karenina.png',
+      downloadUrl: 'http://spinel.info/pdfapi/anakatya1.pdf',
     ),
     Novel(
       title: 'البعث',
       assetFilePath: 'assets/books/ar/alb3th.pdf',
       coverAssetPath: 'assets/covers/alb3th.png',
+      downloadUrl: 'http://spinel.info/pdfapi/alb3th.pdf',
     ),
     Novel(
       title: 'مصرع إيفان إيليتش',
       assetFilePath: 'assets/books/ar/msr3.pdf',
       coverAssetPath: 'assets/covers/msr3.png',
+      downloadUrl: 'http://spinel.info/pdfapi/msr3.pdf',
     ),
     Novel(
       title: 'حكايات شعبية',
       assetFilePath: 'assets/books/ar/al7kayat.pdf',
       coverAssetPath: 'assets/covers/al7kayat.png',
+      downloadUrl: 'http://spinel.info/pdfapi/al7kayat.pdf',
     ),
     Novel(
       title: 'نهاية حب',
       assetFilePath: 'assets/books/ar/nhaya.pdf',
       coverAssetPath: 'assets/covers/nhaya.png',
+      downloadUrl: 'http://spinel.info/pdfapi/nhaya.pdf',
     ),
     Novel(
       title: 'كتاب طريق الحياة',
       assetFilePath: 'assets/books/ar/trig.pdf',
       coverAssetPath: 'assets/covers/trig.png',
+      downloadUrl: 'http://spinel.info/pdfapi/trig.pdf',
     ),
     Novel(
       title: 'سوناتة لكروتزر',
       assetFilePath: 'assets/books/ar/sw.pdf',
       coverAssetPath: 'assets/covers/sw.png',
+      downloadUrl: 'http://spinel.info/pdfapi/sw.pdf',
     ),
     Novel(
       title: 'ماذا علينا أن نفعل',
       assetFilePath: 'assets/books/ar/maza.pdf',
       coverAssetPath: 'assets/covers/maza.png',
+      downloadUrl: 'http://spinel.info/pdfapi/maza.pdf',
     ),
     Novel(
       title: 'ما هو الفن',
       assetFilePath: 'assets/books/ar/alfn.pdf',
       coverAssetPath: 'assets/covers/alfn.png',
+      downloadUrl: 'http://spinel.info/pdfapi/alfn.pdf',
     ),
     Novel(
       title: 'القوزاق',
       assetFilePath: 'assets/books/ar/gwazg.pdf',
       coverAssetPath: 'assets/covers/gwazg.png',
+      downloadUrl: 'http://spinel.info/pdfapi/gwazg.pdf',
     ),
     Novel(
       title: 'السعادة الزوجية',
       assetFilePath: 'assets/books/ar/als3ada.pdf',
       coverAssetPath: 'assets/covers/als3ada.png',
+      downloadUrl: 'http://spinel.info/pdfapi/als3ada.pdf',
     ),
     Novel(
       title: 'عن الحياة',
       assetFilePath: 'assets/books/ar/al7yah.pdf',
       coverAssetPath: 'assets/covers/al7yah.png',
+      downloadUrl: 'http://spinel.info/pdfapi/al7yah.pdf',
     ),
     Novel(
       title: 'في الدين والعقل والفلسفة',
       assetFilePath: 'assets/books/ar/aldeen.pdf',
       coverAssetPath: 'assets/covers/aldeen.png',
+      downloadUrl: 'http://spinel.info/pdfapi/aldeen.pdf',
     ),
     Novel(
       title: 'لحن كرويتزر',
       assetFilePath: 'assets/books/ar/kr.pdf',
       coverAssetPath: 'assets/covers/kr.png',
+      downloadUrl: 'http://spinel.info/pdfapi/kr.pdf',
     ),
     Novel(
       title: 'السيد والخادم',
       assetFilePath: 'assets/books/ar/alseed.pdf',
       coverAssetPath: 'assets/covers/alseed.png',
+      downloadUrl: 'http://spinel.info/pdfapi/alseed.pdf',
     ),
     Novel(
       title: 'الشيطان',
       assetFilePath: 'assets/books/ar/alshitan.pdf',
       coverAssetPath: 'assets/covers/alshitan.png',
+      downloadUrl: 'http://spinel.info/pdfapi/alshitan.pdf',
     ),
     Novel(
       title: 'العجوزان',
       assetFilePath: 'assets/books/ar/al3jwzan.pdf',
       coverAssetPath: 'assets/covers/al3jwzan.png',
+      downloadUrl: 'http://spinel.info/pdfapi/al3jwzan.pdf',
     ),
     Novel(
       title: 'العلم والاخلاق والسياسة',
       assetFilePath: 'assets/books/ar/al3lm.pdf',
       coverAssetPath: 'assets/covers/al3lm.png',
+      downloadUrl: 'http://spinel.info/pdfapi/al3lm.pdf',
     ),
     Novel(
       title: 'سعادة الاسرة',
       assetFilePath: 'assets/books/ar/sa3ada.pdf',
       coverAssetPath: 'assets/covers/sa3ada.png',
+      downloadUrl: 'http://spinel.info/pdfapi/sa3ada.pdf',
     ),
     Novel(
       title: 'السلطة والحرية',
       assetFilePath: 'assets/books/ar/alsolta.pdf',
       coverAssetPath: 'assets/covers/alsolta.png',
+      downloadUrl: 'http://spinel.info/pdfapi/alsolta.pdf',
     ),
   ];
 
@@ -445,9 +471,47 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadFavorites();
     _checkAuthStatus();
-    _loadInterstitialAd();
-    _loadRewardedInterstitialAd();
+    // Wait a bit to ensure AdMob is fully initialized before loading ads
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      if (mounted) {
+        debugPrint('📢 [HOME SCREEN] Starting to load ads...');
+        _loadInterstitialAd();
+        _loadRewardedInterstitialAd();
+        _loadNativeAd();
+      }
+    });
     // Show ad when app opens (after ad is loaded, handled in _loadInterstitialAd)
+  }
+
+  void _loadNativeAd() {
+    _nativeAd = AdHelper.createNativeAd(
+      onAdLoaded: (ad) {
+        debugPrint('✅ Native Ad loaded successfully');
+        if (mounted) {
+          setState(() {
+            _nativeAd = ad;
+            _isNativeAdLoaded = true;
+          });
+        }
+      },
+      onAdFailedToLoad: (error) {
+        debugPrint('❌ Native Ad failed to load: $error');
+        debugPrint('❌ Error code: ${error.code}');
+        debugPrint('❌ Error message: ${error.message}');
+        if (mounted) {
+          setState(() {
+            _isNativeAdLoaded = false;
+          });
+        }
+        // Retry loading after a delay
+        Future.delayed(const Duration(seconds: 10), () {
+          if (mounted && !_isNativeAdLoaded) {
+            debugPrint('🔄 Retrying to load Native Ad...');
+            _loadNativeAd();
+          }
+        });
+      },
+    );
   }
 
   void _loadRewardedInterstitialAd() {
@@ -525,25 +589,39 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _loadInterstitialAd() {
+    debugPrint('📢 [HOME SCREEN] Loading Interstitial Ad...');
     AdHelper.createInterstitialAd(
       onAdLoaded: (ad) {
-        setState(() {
-          _interstitialAd = ad;
-          _isInterstitialAdReady = true;
-        });
+        debugPrint(
+          '✅✅✅ [HOME SCREEN] Interstitial Ad loaded successfully! ✅✅✅',
+        );
+        if (mounted) {
+          setState(() {
+            _interstitialAd = ad;
+            _isInterstitialAdReady = true;
+          });
+        }
         _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
           onAdDismissedFullScreenContent: (ad) {
+            debugPrint('📢 [HOME SCREEN] Interstitial Ad dismissed');
             ad.dispose();
-            setState(() {
-              _isInterstitialAdReady = false;
-            });
+            if (mounted) {
+              setState(() {
+                _isInterstitialAdReady = false;
+              });
+            }
             _loadInterstitialAd();
           },
           onAdFailedToShowFullScreenContent: (ad, error) {
+            debugPrint(
+              '❌ [HOME SCREEN] Interstitial Ad failed to show: $error',
+            );
             ad.dispose();
-            setState(() {
-              _isInterstitialAdReady = false;
-            });
+            if (mounted) {
+              setState(() {
+                _isInterstitialAdReady = false;
+              });
+            }
             _loadInterstitialAd();
           },
         );
@@ -556,16 +634,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 !_hasShownOpeningAd &&
                 _isInterstitialAdReady &&
                 _interstitialAd != null) {
-              debugPrint('🎬 Showing opening ad...');
+              debugPrint('🎬 [HOME SCREEN] Showing opening ad...');
               _showOpeningAd();
             }
           });
         }
       },
       onAdFailedToLoad: (error) {
-        debugPrint('❌ [AD LOADING] Interstitial ad failed to load: $error');
-        debugPrint('❌ [AD LOADING] Error code: ${error.code}');
-        debugPrint('❌ [AD LOADING] Error message: ${error.message}');
+        debugPrint('❌ [HOME SCREEN] Interstitial ad failed to load');
+        debugPrint('❌ [HOME SCREEN] Error code: ${error.code}');
+        debugPrint('❌ [HOME SCREEN] Error domain: ${error.domain}');
+        debugPrint('❌ [HOME SCREEN] Error message: ${error.message}');
+        debugPrint('❌ [HOME SCREEN] Response info: ${error.responseInfo}');
 
         // Check if it's a network error
         final isNetworkError =
@@ -638,7 +718,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _showInterstitialAdOnBookClick() async {
+    debugPrint(
+      '📢 [HOME SCREEN] Attempting to show Interstitial Ad on book click...',
+    );
+    debugPrint(
+      '📢 [HOME SCREEN] Ad status: ad=${_interstitialAd != null}, ready=$_isInterstitialAdReady, mounted=$mounted',
+    );
+
     if (_interstitialAd != null && _isInterstitialAdReady && mounted) {
+      debugPrint('✅ [HOME SCREEN] Interstitial Ad is ready, showing...');
       // Create a Completer to wait for ad dismissal
       final completer = Completer<void>();
       final currentAd = _interstitialAd;
@@ -646,21 +734,28 @@ class _HomeScreenState extends State<HomeScreen> {
       // Set up callback to complete when ad is dismissed
       currentAd!.fullScreenContentCallback = FullScreenContentCallback(
         onAdDismissedFullScreenContent: (ad) {
+          debugPrint(
+            '📢 [HOME SCREEN] Interstitial Ad dismissed after book click',
+          );
           ad.dispose();
-          setState(() {
-            _isInterstitialAdReady = false;
-          });
+          if (mounted) {
+            setState(() {
+              _isInterstitialAdReady = false;
+            });
+          }
           _loadInterstitialAd();
           if (!completer.isCompleted) {
             completer.complete();
           }
         },
         onAdFailedToShowFullScreenContent: (ad, error) {
-          debugPrint('❌ Interstitial Ad failed to show: $error');
+          debugPrint('❌ [HOME SCREEN] Interstitial Ad failed to show: $error');
           ad.dispose();
-          setState(() {
-            _isInterstitialAdReady = false;
-          });
+          if (mounted) {
+            setState(() {
+              _isInterstitialAdReady = false;
+            });
+          }
           _loadInterstitialAd();
           if (!completer.isCompleted) {
             completer.complete();
@@ -669,21 +764,27 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       currentAd.show();
-      setState(() {
-        _isInterstitialAdReady = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isInterstitialAdReady = false;
+        });
+      }
 
       // Wait for ad to be dismissed (max 30 seconds timeout)
       await completer.future
           .timeout(
             const Duration(seconds: 30),
             onTimeout: () {
-              debugPrint('⚠️ Ad timeout - continuing navigation');
+              debugPrint('⚠️ [HOME SCREEN] Ad timeout - continuing navigation');
             },
           )
           .catchError((error) {
-            debugPrint('⚠️ Error waiting for ad: $error');
+            debugPrint('⚠️ [HOME SCREEN] Error waiting for ad: $error');
           });
+    } else {
+      debugPrint(
+        '⚠️ [HOME SCREEN] Interstitial Ad not ready, continuing without ad',
+      );
     }
     // Continue navigation whether ad was shown or not
   }
@@ -694,6 +795,10 @@ class _HomeScreenState extends State<HomeScreen> {
     // Ensure data is loaded when returning to this screen
     if (_isLoading) {
       _loadFavorites();
+    }
+    // Reload Native Ad if not loaded
+    if (!_isNativeAdLoaded && _nativeAd == null) {
+      _loadNativeAd();
     }
   }
 

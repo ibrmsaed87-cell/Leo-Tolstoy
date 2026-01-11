@@ -8,14 +8,16 @@ class AnnaKareninaPartsScreen extends StatelessWidget {
 
   static const List<Novel> _parts = [
     Novel(
-      title: 'رواية انا كاتيا الجزء الاول',
-      assetFilePath: 'assets/books/ar/anakatya1.pdf',
+      title: 'انا كاتيا - الجزء الأول',
+      assetFilePath: '',
       coverAssetPath: 'assets/covers/anna_karenina.png',
+      downloadUrl: 'http://spinel.info/pdfapi/anakatya1.pdf',
     ),
     Novel(
-      title: 'رواية انا كاتيا الجزء الثاني',
-      assetFilePath: 'assets/books/ar/anakatya2.pdf',
+      title: 'انا كاتيا - الجزء الثاني',
+      assetFilePath: '',
       coverAssetPath: 'assets/covers/anna_karenina.png',
+      downloadUrl: 'http://spinel.info/pdfapi/anakatya2.pdf',
     ),
   ];
 

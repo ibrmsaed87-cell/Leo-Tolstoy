@@ -16,6 +16,7 @@ import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 import '../models/novel.dart';
 import '../utils/ad_helper.dart';
+import '../utils/pdf_downloader.dart';
 
 enum ReaderThemeMode { light, sepia, dark }
 
@@ -36,10 +37,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   int? _lastChapterIndex; // Track last chapter to detect chapter completion
-  bool _showRewardedAdOnSettings =
-      false; // Option to show ad when opening settings
   bool _isPdf = false; // Track if file is PDF
   Uint8List? _pdfBytes; // Store PDF bytes
+  bool _isDownloading = false; // Track if downloading from URL
+  double _downloadProgress = 0.0; // Download progress (0.0 - 1.0)
+  bool _downloadCancelled = false; // Track if download was cancelled
 
   final ScreenshotController _screenshot = ScreenshotController();
   late AudioPlayer _audioPlayer;
@@ -63,16 +65,16 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   Future<void> _loadSettings() async {
     _prefs = await SharedPreferences.getInstance();
-    if (mounted) {
-      setState(() {
-        _showRewardedAdOnSettings =
-            _prefs?.getBool('show_rewarded_ad_on_settings') ?? false;
-      });
-    }
+    // Load music state preference (but don't auto-play)
+    // User must manually toggle music on/off
   }
 
   @override
   void dispose() {
+    // Stop music before disposing
+    if (isPlaying) {
+      _audioPlayer.stop();
+    }
     _audioPlayer.dispose();
     _controller?.dispose();
     _pdfController?.dispose();
@@ -80,6 +82,165 @@ class _ReaderScreenState extends State<ReaderScreen> {
     _rewardedAd?.dispose();
     _rewardedInterstitialAd?.dispose();
     super.dispose();
+  }
+
+  /// Load book (PDF or EPUB) from URL
+  Future<void> _loadFromUrl() async {
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoading = true;
+      _isDownloading = true;
+      _downloadProgress = 0.0;
+      _downloadCancelled = false;
+      _errorMessage = null;
+    });
+
+    try {
+      final downloadUrl = widget.novel.downloadUrl!;
+      final novelTitle = widget.novel.title;
+      
+      // Determine file type from URL
+      final urlLower = downloadUrl.toLowerCase();
+      final isPdfFile = urlLower.endsWith('.pdf');
+      final fileExtension = isPdfFile ? 'pdf' : 'epub';
+      
+      debugPrint("📥 [DOWNLOAD] Starting download for: $novelTitle");
+      debugPrint("📥 [DOWNLOAD] URL: $downloadUrl");
+      debugPrint("📥 [DOWNLOAD] File type: $fileExtension");
+      
+      // Check if already cached
+      final cachedPath = await PdfDownloader.getCachedPdfPath(novelTitle);
+      if (cachedPath != null) {
+        debugPrint("✅ [DOWNLOAD] File found in cache: $cachedPath");
+        final file = File(cachedPath);
+        final bytes = await file.readAsBytes();
+        
+        if (!mounted) return;
+        
+        if (isPdfFile) {
+          setState(() {
+            _isPdf = true;
+            _pdfBytes = bytes;
+            _isDownloading = false;
+            _isLoading = false;
+          });
+          // Initialize PDF viewer
+          _pdfController = PdfViewerController();
+        } else {
+          // Handle EPUB
+          setState(() {
+            _isPdf = false;
+            _isDownloading = false;
+            _isLoading = false;
+          });
+          // Parse EPUB
+          final epubBook = await EpubDocument.openData(bytes);
+          _controller = EpubController(
+            document: Future.value(epubBook),
+            epubCfi: _prefs?.getString('cfi_$novelTitle'),
+          );
+        }
+        return;
+      }
+      
+      // Download from URL
+      debugPrint("📥 [DOWNLOAD] Downloading from URL...");
+      final bytes = await PdfDownloader.downloadBookFromUrl(
+        downloadUrl,
+        novelTitle,
+        fileExtension,
+        onProgress: (progress) {
+          if (mounted && !_downloadCancelled) {
+            setState(() {
+              _downloadProgress = progress;
+            });
+          }
+        },
+        onCancel: () {
+          if (mounted) {
+            setState(() {
+              _downloadCancelled = true;
+            });
+          }
+        },
+      );
+      
+      if (_downloadCancelled) {
+        debugPrint("⚠️ [DOWNLOAD] Download cancelled by user");
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _isDownloading = false;
+          });
+        }
+        return;
+      }
+      
+      if (bytes == null) {
+        throw Exception('فشل تحميل الملف');
+      }
+      
+      debugPrint("✅ [DOWNLOAD] Download completed: ${bytes.length} bytes");
+      
+      if (!mounted) return;
+      
+      if (isPdfFile) {
+        setState(() {
+          _isPdf = true;
+          _pdfBytes = bytes;
+          _isDownloading = false;
+          _isLoading = false;
+          _downloadProgress = 1.0;
+        });
+        // Initialize PDF viewer
+        _pdfController = PdfViewerController();
+      } else {
+        // Handle EPUB
+        setState(() {
+          _isPdf = false;
+          _isDownloading = false;
+          _isLoading = false;
+          _downloadProgress = 1.0;
+        });
+        // Parse EPUB
+        final epubBook = await EpubDocument.openData(bytes);
+        _controller = EpubController(
+          document: Future.value(epubBook),
+          epubCfi: _prefs?.getString('cfi_$novelTitle'),
+        );
+      }
+      
+    } catch (e) {
+      debugPrint("❌ [DOWNLOAD] Error: $e");
+      if (!mounted) return;
+      
+      final locale = Localizations.localeOf(context);
+      final isAr = locale.languageCode == 'ar';
+      final isRu = locale.languageCode == 'ru';
+      
+      String errorMsg;
+      if (isAr) {
+        errorMsg = '❌ فشل تحميل الرواية\n\n'
+            'الرواية: ${widget.novel.title}\n\n'
+            '${e.toString()}\n\n'
+            'يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى';
+      } else if (isRu) {
+        errorMsg = '❌ Ошибка загрузки романа\n\n'
+            'Роман: ${widget.novel.title}\n\n'
+            '${e.toString()}';
+      } else {
+        errorMsg = '❌ Failed to download novel\n\n'
+            'Novel: ${widget.novel.title}\n\n'
+            '${e.toString()}';
+      }
+      
+      setState(() {
+        _isLoading = false;
+        _isDownloading = false;
+        _errorMessage = errorMsg;
+      });
+    }
   }
 
   Future<void> _initReader() async {
@@ -103,7 +264,18 @@ class _ReaderScreenState extends State<ReaderScreen> {
       // Continue even if settings fail
     }
 
-    // Step 2: Load file from assets (CRITICAL - must succeed)
+    // Step 2: Load file from assets or download from URL (CRITICAL - must succeed)
+    // Check if this is an Arabic novel with download URL
+    final isArabicNovel = widget.novel.downloadUrl != null && 
+                          widget.novel.downloadUrl!.isNotEmpty;
+    
+    if (isArabicNovel) {
+      // Arabic novel - download from URL
+      await _loadFromUrl();
+      return;
+    }
+    
+    // English/Russian novel - load from assets
     // Check if file is PDF or EPUB
     final assetPath = widget.novel.assetFilePath;
     
@@ -751,34 +923,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
     }
   }
 
-  void _toggleMusic() async {
-    try {
-      if (isPlaying) {
-        await _audioPlayer.pause();
-        debugPrint('🎵 Music paused');
-      } else {
-        await _audioPlayer.play(AssetSource('music/chopin_nocturne.mp3'));
-        debugPrint('🎵 Music started playing');
-        // Set release mode to keep music playing in loop
-        await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-      }
-      if (mounted) {
-        setState(() => isPlaying = !isPlaying);
-      }
-    } catch (e) {
-      debugPrint('❌ Error toggling music: $e');
-      if (mounted) {
-        final isAr = Localizations.localeOf(context).languageCode == 'ar';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isAr ? 'حدث خطأ في تشغيل الموسيقى' : 'Error playing music',
-            ),
-          ),
-        );
-      }
-    }
-  }
 
   // --- تم إصلاح هذه الدالة بالكامل ---
   void _openSearch() async {
@@ -1096,11 +1240,71 @@ class _ReaderScreenState extends State<ReaderScreen> {
     }
   }
 
+  /// Build loading screen with download progress for Arabic novels
+  Widget _buildLoadingScreen() {
+    final locale = Localizations.localeOf(context);
+    final isAr = locale.languageCode == 'ar';
+    final isRu = locale.languageCode == 'ru';
+    
+    if (_isDownloading) {
+      // Show download progress
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 24),
+              Text(
+                isAr
+                    ? '📥 جاري تحميل الرواية...'
+                    : isRu
+                        ? '📥 Загрузка романа...'
+                        : '📥 Downloading novel...',
+                style: Theme.of(context).textTheme.titleLarge,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              LinearProgressIndicator(
+                value: _downloadProgress,
+                minHeight: 8,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '${(_downloadProgress * 100).toStringAsFixed(0)}%',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 24),
+              TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _downloadCancelled = true;
+                    _isDownloading = false;
+                    _isLoading = false;
+                  });
+                  Navigator.pop(context);
+                },
+                icon: const Icon(Icons.cancel),
+                label: Text(
+                  isAr ? 'إلغاء' : isRu ? 'Отмена' : 'Cancel',
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    // Regular loading
+    return const Center(child: CircularProgressIndicator());
+  }
+
   void _showSettings() {
-    // Show rewarded interstitial ad when opening settings
+    // Show interstitial ad when opening settings
     Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) {
-        _showRewardedInterstitialAd();
+        _showInterstitialAd();
       }
     });
 
@@ -1135,7 +1339,53 @@ class _ReaderScreenState extends State<ReaderScreen> {
               SwitchListTile(
                 title: Text(isAr ? "الموسيقى" : "Music"),
                 value: isPlaying,
-                onChanged: (v) => _toggleMusic(),
+                onChanged: (v) async {
+                  // Update UI immediately
+                  setST(() {
+                    isPlaying = v;
+                  });
+                  // Then toggle the music
+                  if (v) {
+                    // User wants to play music
+                    try {
+                      await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+                      await _audioPlayer.setVolume(0.5);
+                      await _audioPlayer.play(AssetSource('music/chopin_nocturne.mp3'));
+                      debugPrint('🎵 Music started playing');
+                      await _prefs?.setBool('music_playing', true);
+                    } catch (e) {
+                      debugPrint('❌ Error playing music: $e');
+                      setST(() {
+                        isPlaying = false;
+                      });
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              isAr ? 'حدث خطأ في تشغيل الموسيقى' : 'Error playing music',
+                            ),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    }
+                  } else {
+                    // User wants to pause music
+                    try {
+                      await _audioPlayer.pause();
+                      debugPrint('🎵 Music paused');
+                      await _prefs?.setBool('music_playing', false);
+                    } catch (e) {
+                      debugPrint('❌ Error pausing music: $e');
+                    }
+                  }
+                  // Update main state as well
+                  if (mounted) {
+                    setState(() {
+                      isPlaying = v;
+                    });
+                  }
+                },
               ),
             ],
           ),
@@ -1204,7 +1454,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
             )
           : null,
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? _buildLoadingScreen()
           : _errorMessage != null
           ? Center(
               child: Padding(

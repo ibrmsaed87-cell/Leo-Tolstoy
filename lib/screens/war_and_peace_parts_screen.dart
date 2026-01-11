@@ -6,28 +6,31 @@ import 'reader_screen.dart';
 class WarAndPeacePartsScreen extends StatelessWidget {
   const WarAndPeacePartsScreen({super.key});
 
-  // War and Peace parts - All files are EPUB format
-  // ReaderScreen will automatically detect EPUB format based on file extension
+  // War and Peace parts - PDF files from server
   static const List<Novel> _parts = [
     Novel(
-      title: 'الحرب والسلم الكتاب الأول',
-      assetFilePath: 'assets/books/ar/al7rb1.epub', // EPUB file
+      title: 'الحرب والسلم - الجزء الأول',
+      assetFilePath: '',
       coverAssetPath: 'assets/covers/war_and_peace.png',
+      downloadUrl: 'http://spinel.info/pdfapi/al7rb1.pdf',
     ),
     Novel(
-      title: 'الحرب والسلم الكتاب الثاني',
-      assetFilePath: 'assets/books/ar/al7rb2.epub', // EPUB file
+      title: 'الحرب والسلم - الجزء الثاني',
+      assetFilePath: '',
       coverAssetPath: 'assets/covers/war_and_peace.png',
+      downloadUrl: 'http://spinel.info/pdfapi/al7rb2.pdf',
     ),
     Novel(
-      title: 'الحرب والسلم الكتاب الثالث',
-      assetFilePath: 'assets/books/ar/al7rb3.epub', // EPUB file
+      title: 'الحرب والسلم - الجزء الثالث',
+      assetFilePath: '',
       coverAssetPath: 'assets/covers/war_and_peace.png',
+      downloadUrl: 'http://spinel.info/pdfapi/al7rb3.pdf',
     ),
     Novel(
-      title: 'الحرب والسلم الكتاب الرابع',
-      assetFilePath: 'assets/books/ar/al7rb4.epub', // EPUB file
+      title: 'الحرب والسلم - الجزء الرابع',
+      assetFilePath: '',
       coverAssetPath: 'assets/covers/war_and_peace.png',
+      downloadUrl: 'http://spinel.info/pdfapi/al7rb4.pdf',
     ),
   ];
 

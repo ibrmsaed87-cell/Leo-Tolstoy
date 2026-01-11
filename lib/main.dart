@@ -24,6 +24,10 @@ void main() async {
 
   // Initialize AdMob
   await AdHelper.initialize();
+  
+  // Wait a bit to ensure AdMob is fully initialized before loading ads
+  await Future.delayed(const Duration(milliseconds: 500));
+  debugPrint('✅ AdMob initialization complete, ready to load ads');
 
   // Initialize FCM Service
   await FCMService.initialize();
@@ -66,19 +70,33 @@ class _TolstoyReaderAppState extends State<TolstoyReaderApp>
     super.didChangeAppLifecycleState(state);
     debugPrint('📱 App lifecycle state changed: $state');
 
-    // Show App Open Ad when app comes to foreground
+    // Show App Open Ad when app comes to foreground (after being in background)
     if (state == AppLifecycleState.resumed) {
-      debugPrint('📱 App resumed - checking App Open Ad...');
+      debugPrint('📱 [APP OPEN AD] App resumed - checking App Open Ad...');
+      debugPrint(
+        '📱 [APP OPEN AD] Ready: ${AdHelper.isAppOpenAdReady()}, Already shown: $_hasShownAppOpenAd',
+      );
+
+      // Only show if ad is ready and hasn't been shown recently (within 5 minutes)
       if (!_hasShownAppOpenAd && AdHelper.isAppOpenAdReady()) {
+        debugPrint('🎬 [APP OPEN AD] Showing App Open Ad on app resume...');
         _hasShownAppOpenAd = true;
         AdHelper.showAppOpenAd();
         // Reset flag after a delay to allow showing ad again later
         Future.delayed(const Duration(minutes: 5), () {
-          _hasShownAppOpenAd = false;
+          if (mounted) {
+            _hasShownAppOpenAd = false;
+            debugPrint(
+              '🔄 [APP OPEN AD] Reset flag after resume - can show ad again',
+            );
+          }
         });
       } else if (!AdHelper.isAppOpenAdReady()) {
         // Load ad if not ready
+        debugPrint('🔄 [APP OPEN AD] Ad not ready, loading...');
         _loadAppOpenAd();
+      } else {
+        debugPrint('⚠️ [APP OPEN AD] Ad already shown recently, skipping');
       }
     }
   }
@@ -101,12 +119,27 @@ class _TolstoyReaderAppState extends State<TolstoyReaderApp>
       onAdLoaded: () {
         debugPrint('✅✅✅ [AD LOADING] App Open Ad loaded successfully! ✅✅✅');
         _appOpenAdRetryCount = 0; // Reset retry count on success
-        // Show ad immediately after first load
+        // Show ad immediately after first load (when app opens)
         if (!_hasShownAppOpenAd) {
-          Future.delayed(const Duration(milliseconds: 500), () {
-            if (mounted && AdHelper.isAppOpenAdReady()) {
+          // Wait a bit for UI to be ready, then show the ad
+          Future.delayed(const Duration(milliseconds: 1000), () {
+            if (mounted && AdHelper.isAppOpenAdReady() && !_hasShownAppOpenAd) {
+              debugPrint(
+                '🎬 [APP OPEN AD] Showing App Open Ad on app launch...',
+              );
               _hasShownAppOpenAd = true;
               AdHelper.showAppOpenAd();
+              // Reset flag after a delay to allow showing ad again when app resumes
+              Future.delayed(const Duration(minutes: 5), () {
+                if (mounted) {
+                  _hasShownAppOpenAd = false;
+                  debugPrint('🔄 [APP OPEN AD] Reset flag - can show ad again');
+                }
+              });
+            } else {
+              debugPrint(
+                '⚠️ [APP OPEN AD] Cannot show - ready: ${AdHelper.isAppOpenAdReady()}, shown: $_hasShownAppOpenAd, mounted: $mounted',
+              );
             }
           });
         }
