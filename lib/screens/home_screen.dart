@@ -20,7 +20,6 @@ import '../utils/share_helper.dart';
 import '../utils/ad_helper.dart';
 import '../utils/auth_service.dart';
 import '../widgets/comments_section.dart';
-// import '../widgets/banner_ad_widget.dart'; // Temporarily disabled
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -52,6 +51,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   NativeAd? _nativeAd;
   bool _isNativeAdLoaded = false;
+  List<NativeAd?> _nativeAds =
+      []; // Multiple native ads for showing after every 5 novels
+  List<bool> _nativeAdsLoaded = []; // Track which ads are loaded
   InterstitialAd? _interstitialAd;
   bool _isInterstitialAdReady = false;
   RewardedInterstitialAd? _rewardedInterstitialAd;
@@ -478,6 +480,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _loadInterstitialAd();
         _loadRewardedInterstitialAd();
         _loadNativeAd();
+        _loadMultipleNativeAds();
       }
     });
     // Show ad when app opens (after ad is loaded, handled in _loadInterstitialAd)
@@ -508,6 +511,62 @@ class _HomeScreenState extends State<HomeScreen> {
           if (mounted && !_isNativeAdLoaded) {
             debugPrint('🔄 Retrying to load Native Ad...');
             _loadNativeAd();
+          }
+        });
+      },
+    );
+  }
+
+  void _loadMultipleNativeAds() {
+    final novels = widget.languageCode == 'ar'
+        ? _arabicNovels
+        : widget.languageCode == 'ru'
+        ? _russianNovels
+        : _englishNovels;
+
+    // Calculate how many native ads we need (after every 5 novels)
+    final numberOfAds = (novels.length / 5).ceil();
+    debugPrint('📢 [HOME SCREEN] Loading $numberOfAds native ads for grid...');
+
+    // Initialize lists
+    _nativeAds = List<NativeAd?>.filled(numberOfAds, null);
+    _nativeAdsLoaded = List<bool>.filled(numberOfAds, false);
+
+    // Load each native ad
+    for (int i = 0; i < numberOfAds; i++) {
+      _loadNativeAdAtIndex(i);
+    }
+  }
+
+  void _loadNativeAdAtIndex(int index) {
+    AdHelper.createNativeAd(
+      onAdLoaded: (loadedAd) {
+        debugPrint('✅ Native Ad #$index loaded successfully');
+        if (mounted) {
+          setState(() {
+            if (index < _nativeAds.length) {
+              _nativeAds[index] = loadedAd;
+              _nativeAdsLoaded[index] = true;
+            }
+          });
+        }
+      },
+      onAdFailedToLoad: (error) {
+        debugPrint('❌ Native Ad #$index failed to load: $error');
+        if (mounted) {
+          setState(() {
+            if (index < _nativeAdsLoaded.length) {
+              _nativeAdsLoaded[index] = false;
+            }
+          });
+        }
+        // Retry loading after a delay
+        Future.delayed(const Duration(seconds: 10), () {
+          if (mounted &&
+              index < _nativeAdsLoaded.length &&
+              !_nativeAdsLoaded[index]) {
+            debugPrint('🔄 Retrying to load Native Ad #$index...');
+            _loadNativeAdAtIndex(index);
           }
         });
       },
@@ -809,6 +868,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _nativeAd?.dispose();
+    for (var ad in _nativeAds) {
+      ad?.dispose();
+    }
     _interstitialAd?.dispose();
     _rewardedInterstitialAd?.dispose();
     super.dispose();
@@ -901,7 +963,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (novels.isEmpty) return;
     final random = Random();
     final randomNovel = novels[random.nextInt(novels.length)];
-    await _showInterstitialAdOnBookClick();
+    // Show rewarded interstitial ad before opening random novel
+    _showRewardedInterstitialAd();
     if (mounted) {
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => ReaderScreen(novel: randomNovel)),
@@ -1020,6 +1083,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     source: quote['source']!,
                     isArabic: isAr,
                   );
+                  // Show rewarded interstitial ad after sharing quote
+                  Future.delayed(const Duration(milliseconds: 500), () {
+                    if (mounted) {
+                      _showRewardedInterstitialAd();
+                    }
+                  });
                 },
                 tooltip: _getText(
                   'مشاركة كصورة',
@@ -1265,7 +1334,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ),
-                  // Novels Grid
+                  // Novels Grid with Native Ads after every 5 novels
                   SliverPadding(
                     padding: const EdgeInsets.all(16),
                     sliver: SliverGrid(
@@ -1277,74 +1346,96 @@ class _HomeScreenState extends State<HomeScreen> {
                             childAspectRatio: 0.65,
                           ),
                       delegate: SliverChildBuilderDelegate((context, index) {
-                        if (index >= novels.length) {
+                        // Calculate if this index should be a native ad
+                        // Native ads appear after positions 4, 9, 14, 19, etc. (after every 5 novels)
+                        // So native ad positions are: 5, 11, 17, 23, etc.
+                        final novelIndex = _getNovelIndexFromGridIndex(index);
+                        final adIndex = _getAdIndexFromGridIndex(index);
+
+                        if (adIndex != null) {
+                          // This is a native ad position
+                          if (adIndex < _nativeAds.length &&
+                              adIndex < _nativeAdsLoaded.length &&
+                              _nativeAdsLoaded[adIndex] &&
+                              _nativeAds[adIndex] != null) {
+                            return _buildGridNativeAd(context, theme, adIndex);
+                          } else {
+                            // Ad not loaded yet, show placeholder
+                            return const SizedBox.shrink();
+                          }
+                        } else if (novelIndex != null &&
+                            novelIndex < novels.length) {
+                          // This is a novel position
+                          final novel = novels[novelIndex];
+                          return _NovelCard(
+                            novel: novel,
+                            languageCode: widget.languageCode,
+                            isFavorite: _isFavorite(novel),
+                            rating: NovelRatings.getRating(novel.title),
+                            progress: _getProgress(novel.title),
+                            onTap: () async {
+                              debugPrint('📖 Opening novel: ${novel.title}');
+                              debugPrint(
+                                '📖 Novel path: ${novel.assetFilePath}',
+                              );
+
+                              // Check if this is "الحرب والسلم" in Arabic
+                              if (novel.title == 'الحرب والسلم' &&
+                                  widget.languageCode == 'ar') {
+                                // Open parts screen for War and Peace
+                                await _showInterstitialAdOnBookClick();
+                                if (mounted) {
+                                  Navigator.of(context)
+                                      .push(
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const WarAndPeacePartsScreen(),
+                                        ),
+                                      )
+                                      .then((_) {
+                                        _refreshData();
+                                      });
+                                }
+                              } else if (novel.title == 'انا كاتيا' &&
+                                  widget.languageCode == 'ar') {
+                                // Open parts screen for Anna Karenina
+                                await _showInterstitialAdOnBookClick();
+                                if (mounted) {
+                                  Navigator.of(context)
+                                      .push(
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const AnnaKareninaPartsScreen(),
+                                        ),
+                                      )
+                                      .then((_) {
+                                        _refreshData();
+                                      });
+                                }
+                              } else {
+                                // Open reader screen directly for other books
+                                await _showInterstitialAdOnBookClick();
+                                if (mounted) {
+                                  Navigator.of(context)
+                                      .push(
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              ReaderScreen(novel: novel),
+                                        ),
+                                      )
+                                      .then((_) {
+                                        // Refresh data when returning from reader
+                                        _refreshData();
+                                      });
+                                }
+                              }
+                            },
+                            onFavoriteTap: () => _toggleFavorite(novel),
+                          );
+                        } else {
                           return const SizedBox.shrink();
                         }
-                        final novel = novels[index];
-                        return _NovelCard(
-                          novel: novel,
-                          languageCode: widget.languageCode,
-                          isFavorite: _isFavorite(novel),
-                          rating: NovelRatings.getRating(novel.title),
-                          progress: _getProgress(novel.title),
-                          onTap: () async {
-                            debugPrint('📖 Opening novel: ${novel.title}');
-                            debugPrint('📖 Novel path: ${novel.assetFilePath}');
-
-                            // Check if this is "الحرب والسلم" in Arabic
-                            if (novel.title == 'الحرب والسلم' &&
-                                widget.languageCode == 'ar') {
-                              // Open parts screen for War and Peace
-                              await _showInterstitialAdOnBookClick();
-                              if (mounted) {
-                                Navigator.of(context)
-                                    .push(
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            const WarAndPeacePartsScreen(),
-                                      ),
-                                    )
-                                    .then((_) {
-                                      _refreshData();
-                                    });
-                              }
-                            } else if (novel.title == 'انا كاتيا' &&
-                                widget.languageCode == 'ar') {
-                              // Open parts screen for Anna Karenina
-                              await _showInterstitialAdOnBookClick();
-                              if (mounted) {
-                                Navigator.of(context)
-                                    .push(
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            const AnnaKareninaPartsScreen(),
-                                      ),
-                                    )
-                                    .then((_) {
-                                      _refreshData();
-                                    });
-                              }
-                            } else {
-                              // Open reader screen directly for other books
-                              await _showInterstitialAdOnBookClick();
-                              if (mounted) {
-                                Navigator.of(context)
-                                    .push(
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            ReaderScreen(novel: novel),
-                                      ),
-                                    )
-                                    .then((_) {
-                                      // Refresh data when returning from reader
-                                      _refreshData();
-                                    });
-                              }
-                            }
-                          },
-                          onFavoriteTap: () => _toggleFavorite(novel),
-                        );
-                      }, childCount: novels.length),
+                      }, childCount: _calculateTotalGridItems(novels.length)),
                     ),
                   ),
                   // Comments Section (after all novels)
@@ -1373,35 +1464,27 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       bottomNavigationBar: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Banner Ad - Temporarily disabled
-            // const BannerAdWidget(),
-            // Info text
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color: theme.colorScheme.outlineVariant,
-                    width: 0.5,
-                  ),
-                ),
-              ),
-              child: Text(
-                _getText(
-                  'جميع الروايات محملة مسبقاً',
-                  'All novels are pre-loaded',
-                  'романы предзагружены',
-                ),
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(
+                color: theme.colorScheme.outlineVariant,
+                width: 0.5,
               ),
             ),
-          ],
+          ),
+          child: Text(
+            _getText(
+              'جميع الروايات محملة مسبقاً',
+              'All novels are pre-loaded',
+              'романы предзагружены',
+            ),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
         ),
       ),
     );
@@ -1670,6 +1753,81 @@ class _HomeScreenState extends State<HomeScreen> {
           ? AdWidget(ad: _nativeAd!)
           : const SizedBox.shrink(),
     );
+  }
+
+  Widget _buildGridNativeAd(
+    BuildContext context,
+    ThemeData theme,
+    int adIndex,
+  ) {
+    if (adIndex >= _nativeAds.length ||
+        adIndex >= _nativeAdsLoaded.length ||
+        !_nativeAdsLoaded[adIndex] ||
+        _nativeAds[adIndex] == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.outlineVariant, width: 1),
+      ),
+      child: AdWidget(ad: _nativeAds[adIndex]!),
+    );
+  }
+
+  // Calculate total grid items (novels + native ads)
+  int _calculateTotalGridItems(int novelCount) {
+    // Native ads appear after every 5 novels
+    // So if we have 25 novels, we need ads after positions 5, 10, 15, 20, 25
+    // That's 5 ads, so total items = 25 + 5 = 30
+    final numberOfAds = (novelCount / 5).floor();
+    return novelCount + numberOfAds;
+  }
+
+  // Get novel index from grid index, or null if it's an ad position
+  int? _getNovelIndexFromGridIndex(int gridIndex) {
+    // Pattern:
+    // Positions 0-4: novels 0-4
+    // Position 5: ad 0
+    // Positions 6-10: novels 5-9
+    // Position 11: ad 1
+    // Positions 12-16: novels 10-14
+    // Position 17: ad 2
+    // etc.
+
+    // Check if this is an ad position
+    // Ad positions: 5, 11, 17, 23, etc.
+    // Formula: (gridIndex - 5) % 6 == 0 and gridIndex >= 5
+    if (gridIndex >= 5 && (gridIndex - 5) % 6 == 0) {
+      return null; // This is an ad position
+    }
+
+    // Calculate novel index
+    // For positions before first ad (0-4): novelIndex = gridIndex
+    // For positions after first ad: we need to subtract the number of ads before this position
+    if (gridIndex < 5) {
+      return gridIndex;
+    }
+
+    // Count how many ads appear before this position
+    final adsBefore = ((gridIndex - 5) ~/ 6) + 1;
+    final novelIndex = gridIndex - adsBefore;
+
+    return novelIndex;
+  }
+
+  // Get ad index from grid index, or null if it's a novel position
+  int? _getAdIndexFromGridIndex(int gridIndex) {
+    // Ad positions are: 5, 11, 17, 23, etc.
+    // Pattern: (gridIndex - 5) % 6 == 0 and gridIndex >= 5
+    if (gridIndex >= 5 && (gridIndex - 5) % 6 == 0) {
+      // Calculate which ad this is (0, 1, 2, 3, ...)
+      return (gridIndex - 5) ~/ 6;
+    }
+    return null;
   }
 }
 

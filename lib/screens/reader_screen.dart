@@ -1301,10 +1301,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   void _showSettings() {
-    // Show interstitial ad when opening settings
+    // Show rewarded interstitial ad when opening settings
     Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) {
-        _showInterstitialAd();
+        _showRewardedInterstitialAd();
       }
     });
 
